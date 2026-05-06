@@ -1,3 +1,7 @@
+## 1.0.2
+
+* Adds Dream Technologies support contact details to the pub.dev README.
+
 ## 1.0.1
 
 * Updates plug-and-play documentation to remove local SDK copy setup from the primary flow.
