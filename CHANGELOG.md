@@ -1,3 +1,8 @@
+## 0.0.4
+
+* Bumps the package version for the next pub.dev publish.
+* Keeps the Flutter-first setup documentation aligned with the backend companion package.
+
 ## 0.0.3
 
 * Adds dartdoc comments across the public API for a better pub.dev documentation score.

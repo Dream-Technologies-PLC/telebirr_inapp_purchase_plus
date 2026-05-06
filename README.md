@@ -22,7 +22,7 @@ Follow these steps in order:
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^0.0.3
+     telebirr_inapp_purchase_plus: ^0.0.4
    ```
 
 8. Run:
@@ -169,7 +169,7 @@ if (result.isSuccess) {
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^0.0.3
+  telebirr_inapp_purchase_plus: ^0.0.4
 ```
 
 Then run:
