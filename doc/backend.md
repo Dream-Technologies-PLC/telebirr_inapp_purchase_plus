@@ -13,6 +13,46 @@ Keep Telebirr secrets on your server. The Flutter package only needs the
 6. Backend receives `notify_url`.
 7. Backend verifies with `queryOrder` if needed.
 
+## What The Backend Must Do
+
+The backend owns the sensitive Telebirr REST flow:
+
+- Store Fabric App ID, App Secret, merchant App ID, short code, and private key.
+- Request a Fabric Token from Telebirr.
+- Build the create-order payload.
+- Sign the request with the private key.
+- Send create-order to Telebirr.
+- Return only `merchantOrderId` and `receiveCode` to Flutter.
+- Receive `notify_url` from Telebirr after payment.
+- Use `queryOrder` to confirm payment if the app needs a final status.
+
+The Flutter app should never receive the App Secret or private key.
+
+## Why receiveCode Matters
+
+`receiveCode` is the payment instruction created by Telebirr for one order. It
+contains the payment product, short code, amount, token-like order data, and
+expiry period in the Telebirr-defined format.
+
+The Flutter package passes this value to the native SDK unchanged. If the
+`receiveCode` is expired, created for the wrong environment, or created with the
+wrong merchant credentials, the native SDK may open but payment can fail.
+
+## App Callback Vs Backend Confirmation
+
+The SDK callback is useful for immediate UI:
+
+- success screen
+- cancelled message
+- app-not-installed message
+- parameter error message
+
+Your backend confirmation is the source of truth:
+
+- `notify_url` is Telebirr's server-to-server payment notification.
+- `queryOrder` can verify an order when callback delivery fails or the app
+  needs a fresh status.
+
 ## Example Create Order Response
 
 ```json

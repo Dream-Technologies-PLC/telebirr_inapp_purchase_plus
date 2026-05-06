@@ -26,6 +26,78 @@ Your Flutter app:
 No app secret, private key, signing, token, create-order, query-order, or
 notify-url code belongs in Flutter.
 
+## How Telebirr InApp Purchase Works
+
+Telebirr InApp Purchase is a server-assisted native app payment flow. Your app
+does not create the payment directly. Your backend creates the order with
+Telebirr first, then the mobile app opens the Telebirr payment app using the
+`receiveCode` returned by that backend order.
+
+```mermaid
+sequenceDiagram
+  participant App as Flutter app
+  participant Backend as Your backend
+  participant TelebirrAPI as Telebirr API
+  participant SDK as Telebirr native SDK
+  participant TelebirrApp as Telebirr app
+
+  App->>Backend: Create order request
+  Backend->>TelebirrAPI: Apply Fabric Token
+  TelebirrAPI-->>Backend: Fabric Token
+  Backend->>TelebirrAPI: Create in-app order
+  TelebirrAPI-->>Backend: receiveCode
+  Backend-->>App: receiveCode
+  App->>SDK: startPay(appId, shortCode, receiveCode, returnApp)
+  SDK->>TelebirrApp: Open payment screen
+  TelebirrApp-->>SDK: Payment callback
+  SDK-->>App: code and message
+  TelebirrAPI-->>Backend: notify_url callback
+```
+
+Important point: the SDK callback tells your app what the native SDK returned.
+For final business confirmation, trust your backend `notify_url` or `queryOrder`
+result.
+
+## How This Package Works
+
+`telebirr_inapp_purchase_plus` is a thin, typed bridge between Flutter and the
+official native Telebirr SDK.
+
+- Dart validates the required payment fields before calling native code.
+- Android uses `MethodChannel` to call Kotlin and `EventChannel` for callbacks.
+- iOS uses `MethodChannel` to call Swift and `EventChannel` for callbacks.
+- Native code builds Telebirr `PayInfo` and calls the official SDK `startPay`.
+- SDK callback codes are converted into `TelebirrPaymentResult`.
+
+The package does not talk to Telebirr REST APIs. It only starts the payment with
+the `receiveCode` your backend already created.
+
+## Package API
+
+Use `TelebirrPaymentRequest` when you are ready to open Telebirr:
+
+```dart
+final request = TelebirrPaymentRequest(
+  appId: 'YOUR_MERCHANT_APP_ID',
+  shortCode: 'YOUR_SHORT_CODE',
+  receiveCode: receiveCodeFromBackend,
+  returnApp: 'yourappscheme',
+  environment: TelebirrEnvironment.test,
+);
+```
+
+Use `TelebirrPaymentResult` to handle the callback:
+
+```dart
+if (result.isSuccess) {
+  // Payment SDK returned success.
+} else if (result.isCancelled) {
+  // User cancelled from Telebirr.
+} else if (result.isAppNotInstalled) {
+  // Ask the user to install Telebirr.
+}
+```
+
 ## Install
 
 ```yaml
@@ -105,6 +177,17 @@ Your app can call any backend route you choose. The example app expects this:
 ```
 
 See [doc/backend.md](doc/backend.md) for a small Laravel-style example.
+
+## Developer Checklist
+
+1. Build backend create-order endpoint.
+2. Keep App Secret and private key only on backend.
+3. Add Telebirr AAR/framework files locally.
+4. Configure Android `FlutterFragmentActivity`.
+5. Configure iOS URL scheme and `telebirrcustomerApp`.
+6. Call backend from Flutter to get `receiveCode`.
+7. Call `startPay`.
+8. Confirm final payment on backend with `notify_url` or `queryOrder`.
 
 ## Android Setup
 
