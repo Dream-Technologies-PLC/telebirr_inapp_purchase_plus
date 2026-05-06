@@ -1,0 +1,29 @@
+.dart_tool/
+.github/
+.idea/
+build/
+coverage/
+pubspec.lock
+
+# Example generated files.
+example/.dart_tool/
+example/.flutter-plugins-dependencies
+example/build/
+example/pubspec.lock
+example/android/local.properties
+example/ios/Flutter/Generated.xcconfig
+example/ios/Flutter/flutter_export_environment.sh
+example/ios/Pods/
+example/ios/Podfile.lock
+
+# Proprietary Telebirr SDK binaries should be installed locally by users.
+android/libs/*.aar
+android/libs-maven/
+ios/Frameworks/
+
+# Local-only files.
+*.env
+*.pem
+*.log
+*.iml
+.DS_Store

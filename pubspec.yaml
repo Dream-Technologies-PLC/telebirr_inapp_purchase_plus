@@ -1,0 +1,32 @@
+name: telebirr_inapp_purchase_plus
+description: A cleaner Flutter bridge for Telebirr InApp Purchase SDK payments on Android and iOS.
+version: 0.0.1
+homepage: https://github.com/ebakebede/telebirr_inapp_purchase_plus
+repository: https://github.com/ebakebede/telebirr_inapp_purchase_plus
+issue_tracker: https://github.com/ebakebede/telebirr_inapp_purchase_plus/issues
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.19.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.telebirr.plus.telebirr_inapp_purchase_plus
+        pluginClass: TelebirrInappPurchasePlusPlugin
+      ios:
+        pluginClass: TelebirrInappPurchasePlusPlugin

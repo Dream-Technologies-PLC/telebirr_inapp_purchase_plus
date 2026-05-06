@@ -1,0 +1,1 @@
+-keep class com.huawei.ethiopia.pay.sdk.api.core.** { *; }

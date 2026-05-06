@@ -1,0 +1,26 @@
+name: Bug report
+description: Report a problem with Telebirr payment startup or callbacks.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: Android 14 / iOS 17
+    validations:
+      required: true
+  - type: input
+    id: flutter
+    attributes:
+      label: Flutter version
+      placeholder: flutter --version
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Do not paste App Secret, private key, or live credentials.
+    validations:
+      required: true
