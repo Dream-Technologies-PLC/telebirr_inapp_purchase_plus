@@ -189,6 +189,30 @@ See [doc/backend.md](doc/backend.md) for a small Laravel-style example.
 7. Call `startPay`.
 8. Confirm final payment on backend with `notify_url` or `queryOrder`.
 
+## What Is Automatic?
+
+Some setup is handled by the package, but some setup must stay in the app or
+backend because it is app-specific or secret.
+
+| Requirement | Automatic? | Notes |
+| --- | --- | --- |
+| Dart payment API | Yes | `TelebirrPaymentRequest`, `TelebirrPaymentResult`, `startPay`, and callback stream are included. |
+| Android native SDK call | Yes | The plugin calls `PaymentManager.getInstance().pay(...)`. |
+| Android payment callback | Yes | The plugin sends callbacks to Flutter through `EventChannel`. |
+| Android `INTERNET` permission | Yes | Declared by the plugin manifest. |
+| Android Telebirr package visibility | Yes | Declared by the plugin manifest. |
+| Android ProGuard keep rule | Yes | Included as a consumer ProGuard rule. |
+| iOS native SDK call | Yes | The plugin calls `EthiopiaPayManager.shared().startPay(...)`. |
+| iOS SDK callback stream | Yes | The plugin sends callbacks to Flutter through `EventChannel`. |
+| iOS `openURL` forwarding | Mostly | The plugin registers an application delegate. Apps with custom URL routing must not swallow the Telebirr URL. |
+| Telebirr AAR files | No | Add official SDK files locally unless you have redistribution rights. |
+| iOS `EthiopiaPaySDK.framework` | No | Add the official framework locally. |
+| Android `FlutterFragmentActivity` | No | The host app owns `MainActivity`, so the developer must configure it. |
+| iOS URL scheme | No | The return scheme is app-specific, so the developer must add it. |
+| Backend create-order endpoint | No | Must stay on your backend because it uses secrets and signing. |
+| App Secret/private key storage | No | Never put these in Flutter. |
+| `notify_url` and `queryOrder` | No | Must be handled by your backend. |
+
 ## Android Setup
 
 1. Add the Telebirr AAR files:

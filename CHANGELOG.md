@@ -2,6 +2,7 @@
 
 * Expands documentation for the package architecture and Telebirr InApp Purchase flow.
 * Adds clearer backend responsibility notes for receiveCode, notify_url, and queryOrder.
+* Documents what the package configures automatically and what remains app-specific.
 * Updates publishing setup for GitHub Actions trusted publishing.
 
 ## 0.0.1
