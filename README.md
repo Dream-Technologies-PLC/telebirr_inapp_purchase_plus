@@ -6,6 +6,61 @@ This package does one job: it starts the native Telebirr payment screen with the
 `receiveCode` your backend already created, then returns the SDK callback to
 Flutter.
 
+## Successful Setup Steps
+
+Follow these steps in order:
+
+1. Create an Ethio Telecom developer account:
+   [developer.ethiotelecom.et](https://developer.ethiotelecom.et/).
+2. Create or join your organization/team.
+3. Make sure your team member status is approved:
+   [developer.ethiotelecom.et/user/team](https://developer.ethiotelecom.et/user/team).
+4. Subscribe/contract the Telebirr InApp Purchase product for testbed or production.
+5. Get your merchant App ID, Fabric App ID, short code, App Secret, and private key from the portal.
+6. Build a backend endpoint that applies Fabric Token, creates the Telebirr order, and returns `receiveCode`.
+7. Add this package to Flutter:
+
+   ```yaml
+   dependencies:
+     telebirr_inapp_purchase_plus: ^0.0.3
+   ```
+
+8. Run:
+
+   ```sh
+   flutter pub get
+   ```
+
+9. Run the setup helper from your Flutter app root:
+
+   ```sh
+   dart run telebirr_inapp_purchase_plus:telebirr_setup \
+     --sdk-dir /path/to/TelebirrSDKFolder \
+     --return-scheme yourappscheme
+   ```
+
+10. Run:
+
+   ```sh
+   flutter clean
+   flutter pub get
+   cd ios && pod install
+   ```
+
+11. In Flutter, call your backend create-order endpoint and get `receiveCode`.
+12. Call `TelebirrInAppPurchasePlus.startPay(...)`.
+13. Show the SDK callback in the app.
+14. Confirm final payment on your backend with `notify_url` or `queryOrder`.
+
+If create order returns this error:
+
+```text
+60200098: Product is not subscribed or the contract status is not allowed to do this operation.
+```
+
+check the Ethio Telecom developer portal team approval and product contract
+status, then create a new order.
+
 ## What You Build
 
 Your backend:
@@ -371,12 +426,3 @@ Tap **Create Order From Backend**, then **Pay With Telebirr**.
 - `60200098`: check Ethio Telecom developer portal team approval and product contract status.
 - Create order succeeds but payment fails: confirm app ID, short code, receive code, return scheme, and Telebirr app environment match.
 - Backend callback missing: make `notify_url` public and verify with `queryOrder`.
-
-## Publishing Checklist
-
-- No merchant credentials in examples.
-- No private keys in the repo.
-- Run `flutter analyze`.
-- Run `flutter test`.
-- Run `dart pub publish --dry-run`.
-- Create a GitHub release/tag only after testbed device payment is verified.

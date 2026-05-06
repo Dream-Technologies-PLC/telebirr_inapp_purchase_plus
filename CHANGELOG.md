@@ -3,6 +3,8 @@
 * Adds dartdoc comments across the public API for a better pub.dev documentation score.
 * Adds a `telebirr_setup` command to copy local SDK files and patch common host app setup.
 * Adds Ethio Telecom developer portal onboarding and contract-status troubleshooting notes.
+* Moves the successful setup steps to the top of the README.
+* Removes the publishing checklist from the README.
 
 ## 0.0.2
 
