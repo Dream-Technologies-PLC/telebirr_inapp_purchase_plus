@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="560" viewBox="0 0 1180 560" role="img" aria-labelledby="title desc">
+  <title id="title">Telebirr InApp Purchase payment flow</title>
+  <desc id="desc">Flutter app calls backend, backend creates Telebirr order, Flutter starts native SDK, Telebirr app handles payment, backend confirms by notify URL or query order.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#087f6f"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fffd; }
+      .box { fill: #ffffff; stroke: #087f6f; stroke-width: 3; rx: 18; }
+      .box2 { fill: #e6f6f2; stroke: #087f6f; stroke-width: 3; rx: 18; }
+      .title { font: 700 24px Arial, sans-serif; fill: #12312d; }
+      .text { font: 17px Arial, sans-serif; fill: #243f3a; }
+      .small { font: 14px Arial, sans-serif; fill: #4e6460; }
+      .step { font: 700 18px Arial, sans-serif; fill: #087f6f; }
+      .line { stroke: #087f6f; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #f59e0b; stroke-width: 3; stroke-dasharray: 10 8; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1180" height="560"/>
+  <text class="title" x="40" y="46">Telebirr InApp Purchase flow</text>
+  <text class="small" x="40" y="76">Flutter starts payment only after your backend creates an order and returns receiveCode.</text>
+
+  <rect class="box" x="40" y="130" width="190" height="110"/>
+  <text class="step" x="62" y="164">1. Flutter app</text>
+  <text class="text" x="62" y="194">User taps pay</text>
+  <text class="small" x="62" y="220">amount + title</text>
+
+  <rect class="box2" x="285" y="130" width="210" height="110"/>
+  <text class="step" x="307" y="164">2. Backend</text>
+  <text class="text" x="307" y="194">Create order</text>
+  <text class="small" x="307" y="220">secrets stay here</text>
+
+  <rect class="box" x="550" y="130" width="215" height="110"/>
+  <text class="step" x="572" y="164">3. Telebirr API</text>
+  <text class="text" x="572" y="194">Fabric Token</text>
+  <text class="small" x="572" y="220">createOrder</text>
+
+  <rect class="box2" x="820" y="130" width="250" height="110"/>
+  <text class="step" x="842" y="164">4. Backend response</text>
+  <text class="text" x="842" y="194">receiveCode</text>
+  <text class="small" x="842" y="220">returned to Flutter</text>
+
+  <rect class="box" x="155" y="340" width="225" height="110"/>
+  <text class="step" x="177" y="374">5. Flutter package</text>
+  <text class="text" x="177" y="404">startPay(...)</text>
+  <text class="small" x="177" y="430">native bridge</text>
+
+  <rect class="box2" x="455" y="340" width="225" height="110"/>
+  <text class="step" x="477" y="374">6. Native SDK</text>
+  <text class="text" x="477" y="404">Android / iOS</text>
+  <text class="small" x="477" y="430">opens Telebirr app</text>
+
+  <rect class="box" x="755" y="340" width="225" height="110"/>
+  <text class="step" x="777" y="374">7. Payment result</text>
+  <text class="text" x="777" y="404">SDK callback</text>
+  <text class="small" x="777" y="430">notify_url / queryOrder</text>
+
+  <path class="line" d="M230 185 H285"/>
+  <path class="line" d="M495 185 H550"/>
+  <path class="line" d="M765 185 H820"/>
+  <path class="line" d="M945 240 C945 295 270 285 270 340"/>
+  <path class="line" d="M380 395 H455"/>
+  <path class="line" d="M680 395 H755"/>
+  <path class="dash" d="M868 340 C890 285 420 285 400 240"/>
+  <text class="small" x="715" y="300">server confirmation</text>
+</svg>

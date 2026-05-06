@@ -52,6 +52,37 @@ Follow these steps in order:
 13. Show the SDK callback in the app.
 14. Confirm final payment on your backend with `notify_url` or `queryOrder`.
 
+## Where To Add Payment Values
+
+These values are entered in your Flutter app or passed in your Flutter code:
+
+| Value | Where it comes from | Where to put it |
+| --- | --- | --- |
+| Backend create-order URL | Your backend team | In the example app field **Backend create-order URL**, or your own `http.post` URL. |
+| Merchant App ID | Ethio Telecom developer portal | In the example app field **App ID**, or `TelebirrPaymentRequest.appId`. |
+| Short code | Ethio Telecom developer portal | In the example app field **Short code**, or `TelebirrPaymentRequest.shortCode`. |
+| Return app scheme | Your Flutter app scheme, for example `myshop` | In the setup helper `--return-scheme myshop`, example app field **Return app scheme**, and `TelebirrPaymentRequest.returnApp`. |
+| Amount | Your checkout screen | Send it to your backend create-order endpoint. |
+| Title | Your checkout/order name | Send it to your backend create-order endpoint. |
+
+Example app path:
+
+```sh
+cd example
+flutter run
+```
+
+Then fill:
+
+1. **Backend create-order URL**: `https://yourdomain.com/api/telebirr/create-order`
+2. **App ID**: your Merchant App ID
+3. **Short code**: your merchant short code
+4. **Return app scheme**: the same scheme used in setup, for example `myshop`
+5. **Amount**: for example `12.00`
+6. **Title**: for example `Test order`
+7. Tap **Create Order From Backend**
+8. Tap **Pay With Telebirr**
+
 If create order returns this error:
 
 ```text
@@ -88,26 +119,7 @@ does not create the payment directly. Your backend creates the order with
 Telebirr first, then the mobile app opens the Telebirr payment app using the
 `receiveCode` returned by that backend order.
 
-```mermaid
-sequenceDiagram
-  participant App as Flutter app
-  participant Backend as Your backend
-  participant TelebirrAPI as Telebirr API
-  participant SDK as Telebirr native SDK
-  participant TelebirrApp as Telebirr app
-
-  App->>Backend: Create order request
-  Backend->>TelebirrAPI: Apply Fabric Token
-  TelebirrAPI-->>Backend: Fabric Token
-  Backend->>TelebirrAPI: Create in-app order
-  TelebirrAPI-->>Backend: receiveCode
-  Backend-->>App: receiveCode
-  App->>SDK: startPay(appId, shortCode, receiveCode, returnApp)
-  SDK->>TelebirrApp: Open payment screen
-  TelebirrApp-->>SDK: Payment callback
-  SDK-->>App: code and message
-  TelebirrAPI-->>Backend: notify_url callback
-```
+![Telebirr InApp Purchase flow](doc/assets/telebirr-inapp-flow.svg)
 
 Important point: the SDK callback tells your app what the native SDK returned.
 For final business confirmation, trust your backend `notify_url` or `queryOrder`
@@ -193,32 +205,8 @@ flutter pub get
 cd ios && pod install
 ```
 
-## Native SDK Files
-
-Telebirr provides the native SDK as local files. Put all official Telebirr SDK
-files in one folder, then pass that folder to the setup helper.
-
-Place the official files here in this package or your local checkout:
-
-```text
-android/libs/EthiopiaPaySdkModule-uat-release.aar
-android/libs/EthiopiaPaySdkModule-prod-release.aar
-ios/Frameworks/EthiopiaPaySDK.framework
-```
-
-For local development, you can copy files from a Telebirr SDK folder:
-
-```sh
-./scripts/install_telebirr_sdks.sh /path/to/TelebirrSDKFolder
-```
-
-For app developers using this package from pub.dev, prefer:
-
-```sh
-dart run telebirr_inapp_purchase_plus:telebirr_setup \
-  --sdk-dir /path/to/TelebirrSDKFolder \
-  --return-scheme yourappscheme
-```
+For the native details handled by the helper, see
+[doc/native-setup-details.md](doc/native-setup-details.md).
 
 ## Flutter Usage
 
@@ -266,6 +254,73 @@ Your app can call any backend route you choose. The example app expects this:
 
 See [doc/backend.md](doc/backend.md) for a small Laravel-style example.
 
+## Backend Curl Example
+
+Send amount and title to your own backend. Use your testbed backend URL while
+testing and your production backend URL after go-live.
+
+Testbed example:
+
+```sh
+curl -X POST "https://your-test-domain.com/api/telebirr/create-order" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "12.00",
+    "title": "Test order",
+    "environment": "test"
+  }'
+```
+
+Production example:
+
+```sh
+curl -X POST "https://yourdomain.com/api/telebirr/create-order" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": "12.00",
+    "title": "Production order",
+    "environment": "production"
+  }'
+```
+
+Backend response:
+
+```json
+{
+  "success": true,
+  "merchantOrderId": "1705460512562",
+  "receiveCode": "TELEBIRR$BUYGOODS$100100306$12.00$080075a4e3213924de2b3b84ad3cac0a6a6001$120m"
+}
+```
+
+Use the returned `receiveCode` in Flutter:
+
+```dart
+final request = TelebirrPaymentRequest(
+  appId: 'YOUR_MERCHANT_APP_ID',
+  shortCode: 'YOUR_SHORT_CODE',
+  receiveCode: backendResponse.receiveCode,
+  returnApp: 'myshop',
+  environment: TelebirrEnvironment.test,
+);
+
+final result = await TelebirrInAppPurchasePlus.startPay(request);
+```
+
+For production, use production merchant values and switch the environment:
+
+```dart
+final request = TelebirrPaymentRequest(
+  appId: 'YOUR_PRODUCTION_MERCHANT_APP_ID',
+  shortCode: 'YOUR_PRODUCTION_SHORT_CODE',
+  receiveCode: backendResponse.receiveCode,
+  returnApp: 'myshop',
+  environment: TelebirrEnvironment.production,
+);
+```
+
 ## Developer Checklist
 
 1. Create an account at [developer.ethiotelecom.et](https://developer.ethiotelecom.et/).
@@ -279,10 +334,10 @@ See [doc/backend.md](doc/backend.md) for a small Laravel-style example.
 9. Call `startPay`.
 10. Confirm final payment on backend with `notify_url` or `queryOrder`.
 
-## What Is Automatic?
+## What The Package Does Automatically
 
-Some setup is handled by the package, but some setup must stay in the app or
-backend because it is app-specific or secret.
+Flutter developers do not need to write native Android or iOS payment code. The
+package and setup helper handle the native bridge and common host app settings.
 
 | Requirement | Automatic? | Notes |
 | --- | --- | --- |
@@ -303,62 +358,7 @@ backend because it is app-specific or secret.
 | App Secret/private key storage | No | Never put these in Flutter. |
 | `notify_url` and `queryOrder` | No | Must be handled by your backend. |
 
-## Android Setup
-
-1. Add the Telebirr AAR files:
-
-   ```text
-   android/libs/EthiopiaPaySdkModule-uat-release.aar
-   android/libs/EthiopiaPaySdkModule-prod-release.aar
-   ```
-
-2. Use `FlutterFragmentActivity` in the host app:
-
-   ```kotlin
-   import io.flutter.embedding.android.FlutterFragmentActivity
-
-   class MainActivity : FlutterFragmentActivity()
-   ```
-
-3. Keep this ProGuard rule if you customize shrinking:
-
-   ```proguard
-   -keep class com.huawei.ethiopia.pay.sdk.api.core.** { *; }
-   ```
-
-The plugin already declares `INTERNET` permission and package visibility for
-the Telebirr payment app.
-
-## iOS Setup
-
-1. Add the official framework:
-
-   ```text
-   ios/Frameworks/EthiopiaPaySDK.framework
-   ```
-
-2. Run:
-
-   ```sh
-   cd example/ios
-   pod install
-   ```
-
-3. Add this to the host app `Info.plist`:
-
-   ```xml
-   <key>LSApplicationQueriesSchemes</key>
-   <array>
-     <string>telebirrcustomerApp</string>
-   </array>
-   ```
-
-4. Add a URL Type for your return scheme, for example `yourappscheme`, and pass
-   the same value as `returnApp`.
-
-The plugin registers an application delegate and forwards `openURL` to the SDK.
-If your app has custom AppDelegate or SceneDelegate URL routing, make sure it
-does not swallow the Telebirr return URL before plugins receive it.
+More detail: [doc/what-package-does.md](doc/what-package-does.md).
 
 ## Test And Production
 
@@ -409,11 +409,11 @@ flutter run
 
 Fill in:
 
-- Backend create-order URL.
-- Merchant App ID.
-- Short code.
-- Return app scheme.
-- Amount and title.
+- **Backend create-order URL** from your backend.
+- **App ID** from Ethio Telecom developer portal.
+- **Short code** from Ethio Telecom developer portal.
+- **Return app scheme** used in `telebirr_setup`.
+- **Amount** and **Title** for the order.
 
 Tap **Create Order From Backend**, then **Pay With Telebirr**.
 

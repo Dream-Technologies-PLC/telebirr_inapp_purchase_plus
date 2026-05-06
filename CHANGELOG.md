@@ -5,6 +5,9 @@
 * Adds Ethio Telecom developer portal onboarding and contract-status troubleshooting notes.
 * Moves the successful setup steps to the top of the README.
 * Removes the publishing checklist from the README.
+* Replaces the README Mermaid diagram with a pub.dev-friendly SVG image.
+* Adds curl examples and explains where developers enter app/backend payment values.
+* Moves low-level native setup details to separate docs.
 
 ## 0.0.2
 
