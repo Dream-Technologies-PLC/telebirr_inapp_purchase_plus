@@ -1,34 +1,12 @@
 # Native Setup Details
 
-Most Flutter developers should use the setup helper:
-
-```sh
-dart run telebirr_inapp_purchase_plus:telebirr_setup \
-  --sdk-dir /path/to/TelebirrSDKFolder \
-  --return-scheme yourappscheme
-```
-
-This page documents what the helper configures.
+Most apps should not need to write Telebirr native payment code. The Flutter
+package owns native SDK artifacts, platform channels, native SDK calls,
+callback forwarding, and result mapping.
 
 ## Android
 
-The helper copies the official Telebirr AAR files:
-
-```text
-android/libs/EthiopiaPaySdkModule-uat-release.aar
-android/libs/EthiopiaPaySdkModule-prod-release.aar
-```
-
-It creates local Maven artifacts used by the plugin Gradle file and patches
-common Kotlin/Java `MainActivity` files to use:
-
-```kotlin
-import io.flutter.embedding.android.FlutterFragmentActivity
-
-class MainActivity : FlutterFragmentActivity()
-```
-
-The plugin already declares:
+The plugin declares:
 
 - Android `INTERNET` permission.
 - Telebirr payment app package visibility.
@@ -38,25 +16,27 @@ The plugin already declares:
 -keep class com.huawei.ethiopia.pay.sdk.api.core.** { *; }
 ```
 
+The plugin also calls the native Telebirr payment SDK from Android and sends
+results back to Dart through `EventChannel`.
+
 ## iOS
 
-The helper copies:
+Use `returnScheme` in Dart:
 
-```text
-ios/Frameworks/EthiopiaPaySDK.framework
+```dart
+await Telebirr.initialize(
+  appId: 'YOUR_MERCHANT_APP_ID',
+  shortCode: 'YOUR_SHORT_CODE',
+  returnScheme: 'yourappscheme',
+);
 ```
-
-It also adds common `Info.plist` entries:
-
-```xml
-<key>LSApplicationQueriesSchemes</key>
-<array>
-  <string>telebirrcustomerApp</string>
-</array>
-```
-
-and a URL type for your `--return-scheme`.
 
 The plugin registers an application delegate and forwards `openURL` to the SDK.
 If your app has custom AppDelegate or SceneDelegate URL routing, make sure it
 allows the Telebirr return URL to reach Flutter plugins.
+
+Run diagnostics when something feels off:
+
+```sh
+dart run telebirr_inapp_purchase_plus:doctor
+```

@@ -1,6 +1,6 @@
 name: telebirr_inapp_purchase_plus
 description: A cleaner Flutter bridge for Telebirr InApp Purchase SDK payments on Android and iOS.
-version: 1.0.0
+version: 1.0.1
 homepage: https://github.com/Dream-Technologies-PLC/telebirr_inapp_purchase_plus
 repository: https://github.com/Dream-Technologies-PLC/telebirr_inapp_purchase_plus
 issue_tracker: https://github.com/Dream-Technologies-PLC/telebirr_inapp_purchase_plus/issues
@@ -24,7 +24,6 @@ dev_dependencies:
   flutter_lints: ^6.0.0
 
 executables:
-  telebirr_setup:
   doctor:
 
 # For information on the generic Dart part of this file, see the

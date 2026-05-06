@@ -32,12 +32,6 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# Telebirr distributes native SDK files outside pub.dev/GitHub in most setups.
-# Keep official binaries local unless you have explicit redistribution rights.
-/android/libs/*.aar
-/android/libs-maven/
-/ios/Frameworks/
-
 # Local backend/testing configuration.
 *.env
 *.pem

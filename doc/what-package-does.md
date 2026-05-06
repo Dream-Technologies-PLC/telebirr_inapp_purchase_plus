@@ -14,7 +14,8 @@ Telebirr InApp Purchase native SDK.
 - Checks whether the Telebirr app is installed.
 - Includes Android manifest permission and package visibility.
 - Includes Android consumer ProGuard rules.
-- Provides `telebirr_setup` to prepare native SDK files and common host app settings.
+- Provides `Telebirr.initialize(...)` to generate or accept a return scheme.
+- Provides `doctor` diagnostics for optional setup validation.
 
 ## Developer Work
 

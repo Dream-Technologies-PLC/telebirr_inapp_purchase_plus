@@ -1,55 +1,49 @@
 # Native SDK Files
 
-Telebirr currently provides local native SDK files. Add them to a local checkout
-before Android or iOS device builds.
+`telebirr_inapp_purchase_plus` is designed so Flutter developers use the Dart
+API instead of editing native Android or iOS payment code. The package ships
+the native Telebirr SDK artifacts needed by the plugin.
+
+The app integration flow is:
+
+```dart
+await Telebirr.initialize(
+  appId: 'YOUR_MERCHANT_APP_ID',
+  shortCode: 'YOUR_SHORT_CODE',
+  returnScheme: 'yourappscheme',
+  environment: TelebirrEnvironment.test,
+);
+
+final result = await Telebirr.pay(
+  receiveCode: receiveCodeFromBackend,
+);
+```
 
 ## Android
 
-Required files:
+The plugin owns:
 
-```text
-android/libs/EthiopiaPaySdkModule-uat-release.aar
-android/libs/EthiopiaPaySdkModule-prod-release.aar
-```
-
-The package Gradle file expects local Maven entries created from those AARs.
-App developers can run this from the Flutter app root:
-
-```sh
-dart run telebirr_inapp_purchase_plus:telebirr_setup \
-  --sdk-dir /path/to/TelebirrSDKFolder \
-  --return-scheme yourappscheme
-```
-
-Package maintainers can also run:
-
-```sh
-./scripts/install_telebirr_sdks.sh /path/to/TelebirrSDKFolder
-```
-
-The script copies the AAR files and creates:
-
-```text
-android/libs-maven/com/telebirr/sdk/ethiopia-pay-sdk-uat/1.0.0/
-android/libs-maven/com/telebirr/sdk/ethiopia-pay-sdk-prod/1.0.0/
-```
+- Telebirr Android SDK dependency wiring.
+- MethodChannel and EventChannel.
+- Telebirr SDK `startPay` bridge.
+- Payment callback mapping.
+- `INTERNET` permission.
+- Telebirr app package visibility.
+- Consumer ProGuard keep rules.
 
 ## iOS
 
-Required file:
+The plugin owns:
 
-```text
-ios/Frameworks/EthiopiaPaySDK.framework
-```
+- `EthiopiaPaySDK.framework` linking.
+- MethodChannel and EventChannel.
+- `EthiopiaPayManager` bridge.
+- SDK callback mapping.
+- `openURL` forwarding through the plugin application delegate.
 
-Then run:
+Pass the same return scheme to `Telebirr.initialize(returnScheme: ...)` that
+your app uses for URL returns. If omitted, the package generates one from the
+bundle identifier.
 
-```sh
-cd example/ios
-pod install
-```
-
-## GitHub And pub.dev
-
-This repository ignores `android/libs/*.aar`, `android/libs-maven/`, and
-`ios/Frameworks/` by default. Use the setup helper after installing the package.
+If your app has custom AppDelegate or SceneDelegate URL routing, make sure it
+does not swallow Telebirr return URLs before Flutter plugins receive them.

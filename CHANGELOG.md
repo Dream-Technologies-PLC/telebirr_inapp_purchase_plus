@@ -1,10 +1,16 @@
+## 1.0.1
+
+* Updates plug-and-play documentation to remove local SDK copy setup from the primary flow.
+* Documents all `Telebirr.initialize` properties at the top of the README.
+* Clarifies `returnScheme` usage for Android and iOS.
+
 ## 1.0.0
 
 * Adds the high-level `Telebirr.initialize(...)` and `Telebirr.pay(...)` API.
 * Auto-generates a return scheme from the Android application ID or iOS bundle identifier.
 * Adds native application ID / bundle ID detection.
 * Adds `dart run telebirr_inapp_purchase_plus:doctor` diagnostics.
-* Keeps `telebirr_setup` and `TelebirrInAppPurchasePlus.startPay(...)` for migration compatibility.
+* Keeps `TelebirrInAppPurchasePlus.startPay(...)` for migration compatibility.
 
 ## 0.0.4
 
@@ -14,7 +20,7 @@
 ## 0.0.3
 
 * Adds dartdoc comments across the public API for a better pub.dev documentation score.
-* Adds a `telebirr_setup` command to copy local SDK files and patch common host app setup.
+* Adds a setup command to copy local SDK files and patch common host app setup.
 * Adds Ethio Telecom developer portal onboarding and contract-status troubleshooting notes.
 * Moves the successful setup steps to the top of the README.
 * Removes the publishing checklist from the README.
