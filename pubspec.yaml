@@ -1,6 +1,6 @@
 name: telebirr_inapp_purchase_plus
 description: A cleaner Flutter bridge for Telebirr InApp Purchase SDK payments on Android and iOS.
-version: 0.0.1
+version: 0.0.2
 homepage: https://github.com/Dream-Technologies-PLC/telebirr_inapp_purchase_plus
 repository: https://github.com/Dream-Technologies-PLC/telebirr_inapp_purchase_plus
 issue_tracker: https://github.com/Dream-Technologies-PLC/telebirr_inapp_purchase_plus/issues
