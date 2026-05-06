@@ -509,3 +509,9 @@ Tap **Create Order From Backend**, then **Pay With Telebirr**.
 - `60200098`: check Ethio Telecom developer portal team approval and product contract status.
 - Create order succeeds but payment fails: confirm app ID, short code, receive code, return scheme, and Telebirr app environment match.
 - Backend callback missing: make `notify_url` public and verify with `queryOrder`.
+
+## Contact Us
+
+Need support with Telebirr integration, websites, mobile apps, or custom
+software? Contact Dream Technologies PLC:
+[dreamtech.et/contact](https://dreamtech.et/contact)
