@@ -24,6 +24,8 @@ public class TelebirrInappPurchasePlusPlugin: NSObject, FlutterPlugin, FlutterSt
     switch call.method {
     case "getPlatformVersion":
       result("iOS " + UIDevice.current.systemVersion)
+    case "getApplicationId":
+      result(Bundle.main.bundleIdentifier)
     case "isTelebirrInstalled":
       result(isTelebirrInstalled())
     case "startPay":

@@ -17,6 +17,212 @@ enum TelebirrEnvironment {
   production,
 }
 
+/// Runtime configuration for the high-level [Telebirr] API.
+///
+/// Keep App Secret, private keys, Fabric Token, order creation, notify_url, and
+/// queryOrder logic on your backend. This config contains only values required
+/// by the native Telebirr SDK to open the payment screen.
+class TelebirrConfig {
+  /// Merchant App ID from the Ethio Telecom developer portal.
+  final String appId;
+
+  /// Merchant business short code.
+  final String shortCode;
+
+  /// Optional app return scheme. When omitted, the package generates a stable
+  /// scheme from the Android application ID or iOS bundle identifier.
+  final String? returnScheme;
+
+  /// Native SDK environment.
+  final TelebirrEnvironment environment;
+
+  /// Enables package-side debug logs.
+  final bool enableLogs;
+
+  /// Creates Telebirr runtime configuration.
+  const TelebirrConfig({
+    required this.appId,
+    required this.shortCode,
+    this.returnScheme,
+    this.environment = TelebirrEnvironment.test,
+    this.enableLogs = false,
+  });
+}
+
+/// Diagnostics returned by [Telebirr.doctor].
+class TelebirrDiagnostics {
+  /// Whether the current runtime checks passed.
+  final bool isHealthy;
+
+  /// Human-readable diagnostics messages.
+  final List<String> messages;
+
+  /// Generated or configured return scheme.
+  final String? returnScheme;
+
+  /// Android application ID or iOS bundle identifier.
+  final String? applicationId;
+
+  /// Creates diagnostics for Telebirr runtime setup.
+  const TelebirrDiagnostics({
+    required this.isHealthy,
+    required this.messages,
+    this.returnScheme,
+    this.applicationId,
+  });
+
+  /// Converts diagnostics to a JSON-friendly map.
+  Map<String, Object?> toMap() {
+    return <String, Object?>{
+      'isHealthy': isHealthy,
+      'messages': messages,
+      'returnScheme': returnScheme,
+      'applicationId': applicationId,
+    };
+  }
+}
+
+/// High-level plug-and-play Telebirr API.
+///
+/// Call [initialize] once, then call [pay] with a backend-created receiveCode.
+class Telebirr {
+  Telebirr._();
+
+  static TelebirrConfig? _config;
+  static String? _returnScheme;
+  static String? _applicationId;
+
+  /// Initializes Telebirr for this app.
+  ///
+  /// If [config.returnScheme] is omitted, the package generates a stable scheme
+  /// from the host app package name or bundle identifier.
+  static Future<void> initialize({
+    required String appId,
+    required String shortCode,
+    String? returnScheme,
+    TelebirrEnvironment environment = TelebirrEnvironment.test,
+    bool enableLogs = false,
+  }) async {
+    final normalizedConfig = TelebirrConfig(
+      appId: appId.trim(),
+      shortCode: shortCode.trim(),
+      returnScheme: returnScheme?.trim(),
+      environment: environment,
+      enableLogs: enableLogs,
+    );
+    _validateConfig(normalizedConfig);
+
+    _applicationId = await TelebirrInAppPurchasePlus.getApplicationId();
+    _returnScheme = _normalizeReturnScheme(
+      normalizedConfig.returnScheme?.isNotEmpty == true
+          ? normalizedConfig.returnScheme!
+          : _generatedReturnScheme(_applicationId),
+    );
+    _config = normalizedConfig;
+
+    _log('Initialized Telebirr with return scheme: $_returnScheme');
+  }
+
+  /// Starts Telebirr payment with a backend-created [receiveCode].
+  static Future<TelebirrPaymentResult> pay({
+    required String receiveCode,
+  }) async {
+    final config = _config;
+    final returnScheme = _returnScheme;
+    if (config == null || returnScheme == null) {
+      throw StateError(
+          'Call Telebirr.initialize(...) before Telebirr.pay(...).');
+    }
+
+    return TelebirrInAppPurchasePlus.startPay(
+      TelebirrPaymentRequest(
+        appId: config.appId,
+        shortCode: config.shortCode,
+        receiveCode: receiveCode,
+        returnApp: returnScheme,
+        environment: config.environment,
+      ),
+    );
+  }
+
+  /// Broadcast stream of Telebirr payment results.
+  static Stream<TelebirrPaymentResult> get paymentResultStream {
+    return TelebirrInAppPurchasePlus.paymentResultStream;
+  }
+
+  /// Returns true when the Telebirr payment app is installed.
+  static Future<bool> isTelebirrInstalled() {
+    return TelebirrInAppPurchasePlus.isTelebirrInstalled();
+  }
+
+  /// Performs lightweight runtime diagnostics.
+  ///
+  /// Full project-file diagnostics are available from:
+  /// `dart run telebirr_inapp_purchase_plus:doctor`.
+  static Future<TelebirrDiagnostics> doctor() async {
+    final messages = <String>[];
+    final applicationId =
+        _applicationId ?? await TelebirrInAppPurchasePlus.getApplicationId();
+    final returnScheme = _returnScheme ?? _generatedReturnScheme(applicationId);
+    final installed = await isTelebirrInstalled();
+
+    if (applicationId == null || applicationId.isEmpty) {
+      messages.add('Could not detect application ID or bundle identifier.');
+    } else {
+      messages.add('Detected app ID: $applicationId');
+    }
+    messages.add('Return scheme: $returnScheme');
+    messages.add(
+      installed
+          ? 'Telebirr app is installed.'
+          : 'Telebirr app is not installed.',
+    );
+
+    return TelebirrDiagnostics(
+      isHealthy: applicationId != null && applicationId.isNotEmpty,
+      messages: messages,
+      applicationId: applicationId,
+      returnScheme: returnScheme,
+    );
+  }
+
+  static void _validateConfig(TelebirrConfig config) {
+    final errors = <String>[];
+    if (config.appId.isEmpty) errors.add('appId is required');
+    if (config.shortCode.isEmpty) errors.add('shortCode is required');
+    if (config.returnScheme != null &&
+        config.returnScheme!.isNotEmpty &&
+        !_isValidScheme(config.returnScheme!)) {
+      errors.add('returnScheme must be a valid URL scheme');
+    }
+    if (errors.isNotEmpty) {
+      throw ArgumentError(errors.join(', '));
+    }
+  }
+
+  static String _generatedReturnScheme(String? applicationId) {
+    final id = applicationId?.trim();
+    if (id == null || id.isEmpty) return 'telebirr-flutter-app';
+    return 'telebirr-${id.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')}'
+        .toLowerCase();
+  }
+
+  static String _normalizeReturnScheme(String value) {
+    return value.trim().replaceAll('://', '');
+  }
+
+  static bool _isValidScheme(String value) {
+    return RegExp(r'^[A-Za-z][A-Za-z0-9+.-]*$').hasMatch(value);
+  }
+
+  static void _log(String message) {
+    if (_config?.enableLogs == true) {
+      // ignore: avoid_print
+      print('[telebirr] $message');
+    }
+  }
+}
+
 /// Payment data required to open the Telebirr native payment app.
 ///
 /// The [receiveCode] must come from your backend create-order endpoint. Do not
@@ -223,6 +429,11 @@ class TelebirrInAppPurchasePlus {
   /// Returns the current Android or iOS platform version string.
   static Future<String?> getPlatformVersion() {
     return _methodChannel.invokeMethod<String>('getPlatformVersion');
+  }
+
+  /// Returns Android application ID or iOS bundle identifier.
+  static Future<String?> getApplicationId() {
+    return _methodChannel.invokeMethod<String>('getApplicationId');
   }
 
   static void _validateRequest(TelebirrPaymentRequest request) {

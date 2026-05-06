@@ -4,38 +4,64 @@ import 'dart:isolate';
 Future<void> main(List<String> args) async {
   final options = _Options.parse(args);
   if (options.help) {
-    _printUsage();
-    return;
-  }
-
-  if (options.sdkDir == null) {
-    stderr.writeln('Missing --sdk-dir.');
-    _printUsage();
-    exitCode = 64;
+    _printUsage(options.doctor);
     return;
   }
 
   final projectRoot = Directory.current;
   final packageRoot = await _packageRoot();
-  final sdkDir = Directory(options.sdkDir!);
 
   if (!File('${projectRoot.path}/pubspec.yaml').existsSync()) {
     stderr.writeln('Run this command from your Flutter app root.');
     exitCode = 64;
     return;
   }
+
+  final returnScheme = options.returnScheme?.trim().isNotEmpty == true
+      ? options.returnScheme!.trim()
+      : _defaultReturnScheme(projectRoot);
+
+  if (options.doctor && !options.fix) {
+    _runDiagnostics(
+      projectRoot: projectRoot,
+      packageRoot: packageRoot,
+      returnScheme: returnScheme,
+    );
+    return;
+  }
+
+  if (options.sdkDir == null) {
+    _runDiagnostics(
+      projectRoot: projectRoot,
+      packageRoot: packageRoot,
+      returnScheme: returnScheme,
+    );
+    stdout.writeln('');
+    stdout.writeln('No --sdk-dir supplied, so SDK file copy was skipped.');
+    stdout.writeln('To auto-fix with SDK files, run:');
+    stdout.writeln(
+      '  dart run telebirr_inapp_purchase_plus:doctor --fix '
+      '--sdk-dir /path/to/TelebirrSDKFolder',
+    );
+    if (!options.doctor) exitCode = 64;
+    return;
+  }
+
+  final sdkDir = Directory(options.sdkDir!);
   if (!sdkDir.existsSync()) {
     stderr.writeln('SDK folder not found: ${sdkDir.path}');
     exitCode = 66;
     return;
   }
-
   _copyAndroidSdkFiles(sdkDir, packageRoot);
   _copyIosFramework(sdkDir, packageRoot);
   _patchAndroidMainActivity(projectRoot);
-  if (options.returnScheme != null && options.returnScheme!.trim().isNotEmpty) {
-    _patchIosInfoPlist(projectRoot, options.returnScheme!.trim());
-  }
+  _patchIosInfoPlist(projectRoot, returnScheme);
+  _runDiagnostics(
+    projectRoot: projectRoot,
+    packageRoot: packageRoot,
+    returnScheme: returnScheme,
+  );
 
   stdout.writeln('');
   stdout.writeln('Telebirr setup complete.');
@@ -254,17 +280,116 @@ void _copyDirectory(Directory source, Directory destination) {
   }
 }
 
-void _printUsage() {
+void _runDiagnostics({
+  required Directory projectRoot,
+  required Directory packageRoot,
+  required String returnScheme,
+}) {
+  stdout.writeln('');
+  stdout.writeln('Telebirr Doctor');
+  stdout.writeln('');
+  _check(
+      'Flutter project', File('${projectRoot.path}/pubspec.yaml').existsSync());
+  _check(
+      'Android project', Directory('${projectRoot.path}/android').existsSync());
+  _check('iOS project', Directory('${projectRoot.path}/ios').existsSync());
+  _check(
+    'Android UAT AAR',
+    File('${packageRoot.path}/android/libs/EthiopiaPaySdkModule-uat-release.aar')
+        .existsSync(),
+  );
+  _check(
+    'Android production AAR',
+    File('${packageRoot.path}/android/libs/EthiopiaPaySdkModule-prod-release.aar')
+        .existsSync(),
+  );
+  _check(
+    'iOS EthiopiaPaySDK.framework',
+    Directory('${packageRoot.path}/ios/Frameworks/EthiopiaPaySDK.framework')
+        .existsSync(),
+  );
+  _check(
+      'Android MainActivity', _mainActivityUsesFragmentActivity(projectRoot));
+  _check('iOS telebirrcustomerApp',
+      _iosPlistContains(projectRoot, 'telebirrcustomerApp'));
+  _check('iOS return scheme $returnScheme',
+      _iosPlistContains(projectRoot, returnScheme));
+
+  stdout.writeln('');
+  stdout.writeln('Generated return scheme: $returnScheme');
+}
+
+void _check(String label, bool passed) {
+  stdout.writeln('${passed ? '✓' : '✗'} $label');
+}
+
+bool _mainActivityUsesFragmentActivity(Directory projectRoot) {
+  final androidSrc = Directory('${projectRoot.path}/android/app/src/main');
+  if (!androidSrc.existsSync()) return false;
+  return androidSrc
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) =>
+          file.path.endsWith('MainActivity.kt') ||
+          file.path.endsWith('MainActivity.java'))
+      .any((file) =>
+          file.readAsStringSync().contains('FlutterFragmentActivity'));
+}
+
+bool _iosPlistContains(Directory projectRoot, String value) {
+  final plist = File('${projectRoot.path}/ios/Runner/Info.plist');
+  return plist.existsSync() && plist.readAsStringSync().contains(value);
+}
+
+String _defaultReturnScheme(Directory projectRoot) {
+  final appId = _detectAndroidApplicationId(projectRoot) ??
+      _detectIosBundleId(projectRoot) ??
+      'flutter-app';
+  return 'telebirr-${appId.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')}'
+      .toLowerCase();
+}
+
+String? _detectAndroidApplicationId(Directory projectRoot) {
+  final candidates = <File>[
+    File('${projectRoot.path}/android/app/build.gradle.kts'),
+    File('${projectRoot.path}/android/app/build.gradle'),
+  ];
+  for (final file in candidates) {
+    if (!file.existsSync()) continue;
+    final content = file.readAsStringSync();
+    final match =
+        RegExp(r'applicationId\s*[= ]\s*["' "'" r']([^"' "'" r']+)["' "'" r']')
+            .firstMatch(content);
+    if (match != null) return match.group(1);
+  }
+  return null;
+}
+
+String? _detectIosBundleId(Directory projectRoot) {
+  final project =
+      File('${projectRoot.path}/ios/Runner.xcodeproj/project.pbxproj');
+  if (!project.existsSync()) return null;
+  final match = RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);')
+      .firstMatch(project.readAsStringSync());
+  return match?.group(1)?.replaceAll(r'$(PRODUCT_NAME)', 'app').trim();
+}
+
+void _printUsage(bool doctor) {
   stdout.writeln('''
-Telebirr setup helper
+Telebirr ${doctor ? 'doctor' : 'setup'} helper
 
 Run from your Flutter app root:
 
-  dart run telebirr_inapp_purchase_plus:telebirr_setup \\
+  dart run telebirr_inapp_purchase_plus:doctor
+
+Auto-fix common setup issues:
+
+  dart run telebirr_inapp_purchase_plus:doctor --fix \\
     --sdk-dir /path/to/TelebirrSDKFolder \\
     --return-scheme yourappscheme
 
 The command:
+- validates Android and iOS setup
 - copies Telebirr Android AAR files into the package cache
 - creates Android local Maven artifacts
 - copies EthiopiaPaySDK.framework into the package cache
@@ -277,22 +402,32 @@ class _Options {
   final String? sdkDir;
   final String? returnScheme;
   final bool help;
+  final bool doctor;
+  final bool fix;
 
   const _Options({
     required this.sdkDir,
     required this.returnScheme,
     required this.help,
+    required this.doctor,
+    required this.fix,
   });
 
   factory _Options.parse(List<String> args) {
     String? sdkDir;
     String? returnScheme;
     var help = false;
+    var doctor = false;
+    var fix = false;
 
     for (var index = 0; index < args.length; index++) {
       final arg = args[index];
       if (arg == '--help' || arg == '-h') {
         help = true;
+      } else if (arg == '--doctor') {
+        doctor = true;
+      } else if (arg == '--fix') {
+        fix = true;
       } else if (arg == '--sdk-dir' && index + 1 < args.length) {
         sdkDir = args[++index];
       } else if (arg.startsWith('--sdk-dir=')) {
@@ -308,6 +443,8 @@ class _Options {
       sdkDir: sdkDir,
       returnScheme: returnScheme,
       help: help,
+      doctor: doctor,
+      fix: fix,
     );
   }
 }

@@ -1,3 +1,11 @@
+## 1.0.0
+
+* Adds the high-level `Telebirr.initialize(...)` and `Telebirr.pay(...)` API.
+* Auto-generates a return scheme from the Android application ID or iOS bundle identifier.
+* Adds native application ID / bundle ID detection.
+* Adds `dart run telebirr_inapp_purchase_plus:doctor` diagnostics.
+* Keeps `telebirr_setup` and `TelebirrInAppPurchasePlus.startPay(...)` for migration compatibility.
+
 ## 0.0.4
 
 * Bumps the package version for the next pub.dev publish.

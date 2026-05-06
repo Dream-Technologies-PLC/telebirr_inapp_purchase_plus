@@ -6,6 +6,46 @@ This package does one job: it starts the native Telebirr payment screen with the
 `receiveCode` your backend already created, then returns the SDK callback to
 Flutter.
 
+## 3-Minute Setup
+
+1. Install:
+
+   ```yaml
+   dependencies:
+     telebirr_inapp_purchase_plus: ^1.0.0
+   ```
+
+2. Run diagnostics from your Flutter app root:
+
+   ```sh
+   dart run telebirr_inapp_purchase_plus:doctor
+   ```
+
+3. If native SDK files need to be installed locally, auto-fix common setup:
+
+   ```sh
+   dart run telebirr_inapp_purchase_plus:doctor --fix \
+     --sdk-dir /path/to/TelebirrSDKFolder
+   ```
+
+4. Initialize once:
+
+   ```dart
+   await Telebirr.initialize(
+     appId: 'YOUR_MERCHANT_APP_ID',
+     shortCode: 'YOUR_SHORT_CODE',
+     environment: TelebirrEnvironment.test,
+   );
+   ```
+
+5. Pay with the backend-created receiveCode:
+
+   ```dart
+   final result = await Telebirr.pay(
+     receiveCode: receiveCodeFromBackend,
+   );
+   ```
+
 ## Successful Setup Steps
 
 Follow these steps in order:
@@ -22,7 +62,7 @@ Follow these steps in order:
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^0.0.4
+     telebirr_inapp_purchase_plus: ^1.0.0
    ```
 
 8. Run:
@@ -31,12 +71,17 @@ Follow these steps in order:
    flutter pub get
    ```
 
-9. Run the setup helper from your Flutter app root:
+9. Run Telebirr Doctor from your Flutter app root:
 
    ```sh
-   dart run telebirr_inapp_purchase_plus:telebirr_setup \
-     --sdk-dir /path/to/TelebirrSDKFolder \
-     --return-scheme yourappscheme
+   dart run telebirr_inapp_purchase_plus:doctor
+   ```
+
+   To auto-fix common native setup and install local SDK files:
+
+   ```sh
+   dart run telebirr_inapp_purchase_plus:doctor --fix \
+     --sdk-dir /path/to/TelebirrSDKFolder
    ```
 
 10. Run:
@@ -48,7 +93,7 @@ Follow these steps in order:
    ```
 
 11. In Flutter, call your backend create-order endpoint and get `receiveCode`.
-12. Call `TelebirrInAppPurchasePlus.startPay(...)`.
+12. Call `Telebirr.initialize(...)`, then `Telebirr.pay(...)`.
 13. Show the SDK callback in the app.
 14. Confirm final payment on your backend with `notify_url` or `queryOrder`.
 
@@ -106,7 +151,7 @@ Your Flutter app:
 
 - Asks your backend to create an order.
 - Receives `receiveCode`.
-- Calls `TelebirrInAppPurchasePlus.startPay(...)`.
+- Calls `Telebirr.pay(...)`.
 - Displays the SDK callback.
 
 No app secret, private key, signing, token, create-order, query-order, or
@@ -169,7 +214,7 @@ if (result.isSuccess) {
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^0.0.4
+  telebirr_inapp_purchase_plus: ^1.0.0
 ```
 
 Then run:
@@ -183,9 +228,14 @@ flutter pub get
 After `flutter pub get`, run the setup helper from your Flutter app root:
 
 ```sh
-dart run telebirr_inapp_purchase_plus:telebirr_setup \
-  --sdk-dir /path/to/TelebirrSDKFolder \
-  --return-scheme yourappscheme
+dart run telebirr_inapp_purchase_plus:doctor
+```
+
+To auto-fix common setup:
+
+```sh
+dart run telebirr_inapp_purchase_plus:doctor --fix \
+  --sdk-dir /path/to/TelebirrSDKFolder
 ```
 
 The setup helper:
@@ -211,15 +261,13 @@ For the native details handled by the helper, see
 ## Flutter Usage
 
 ```dart
-final request = TelebirrPaymentRequest(
+await Telebirr.initialize(
   appId: 'YOUR_MERCHANT_APP_ID',
   shortCode: 'YOUR_SHORT_CODE',
-  receiveCode: receiveCodeFromBackend,
-  returnApp: 'yourappscheme',
   environment: TelebirrEnvironment.test,
 );
 
-final result = await TelebirrInAppPurchasePlus.startPay(request);
+final result = await Telebirr.pay(receiveCode: receiveCodeFromBackend);
 
 if (result.isSuccess) {
   print('Payment successful');
@@ -329,9 +377,9 @@ final request = TelebirrPaymentRequest(
 4. Subscribe/contract the Telebirr InApp Purchase product for test or production.
 5. Build backend create-order endpoint.
 6. Keep App Secret and private key only on backend.
-7. Run `dart run telebirr_inapp_purchase_plus:telebirr_setup`.
+7. Run `dart run telebirr_inapp_purchase_plus:doctor --fix --sdk-dir /path/to/TelebirrSDKFolder`.
 8. Call backend from Flutter to get `receiveCode`.
-9. Call `startPay`.
+9. Call `Telebirr.initialize(...)`, then `Telebirr.pay(...)`.
 10. Confirm final payment on backend with `notify_url` or `queryOrder`.
 
 ## What The Package Does Automatically
@@ -341,7 +389,7 @@ package and setup helper handle the native bridge and common host app settings.
 
 | Requirement | Automatic? | Notes |
 | --- | --- | --- |
-| Dart payment API | Yes | `TelebirrPaymentRequest`, `TelebirrPaymentResult`, `startPay`, and callback stream are included. |
+| Dart payment API | Yes | `Telebirr.initialize`, `Telebirr.pay`, `TelebirrPaymentResult`, legacy `startPay`, and callback stream are included. |
 | Android native SDK call | Yes | The plugin calls `PaymentManager.getInstance().pay(...)`. |
 | Android payment callback | Yes | The plugin sends callbacks to Flutter through `EventChannel`. |
 | Android `INTERNET` permission | Yes | Declared by the plugin manifest. |
@@ -412,7 +460,7 @@ Fill in:
 - **Backend create-order URL** from your backend.
 - **App ID** from Ethio Telecom developer portal.
 - **Short code** from Ethio Telecom developer portal.
-- **Return app scheme** used in `telebirr_setup`.
+- **Return app scheme** used by `doctor --fix` or generated by `Telebirr.initialize`.
 - **Amount** and **Title** for the order.
 
 Tap **Create Order From Backend**, then **Pay With Telebirr**.

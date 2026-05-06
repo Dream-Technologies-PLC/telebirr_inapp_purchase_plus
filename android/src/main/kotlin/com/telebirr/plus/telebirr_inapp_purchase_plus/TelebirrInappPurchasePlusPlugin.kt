@@ -40,6 +40,7 @@ class TelebirrInappPurchasePlusPlugin :
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "getPlatformVersion" -> result.success("Android ${Build.VERSION.RELEASE}")
+            "getApplicationId" -> result.success(applicationContext.packageName)
             "isTelebirrInstalled" -> result.success(isPackageInstalled(TELEBIRR_PACKAGE_NAME))
             "startPay" -> startPay(call, result)
             else -> result.notImplemented()

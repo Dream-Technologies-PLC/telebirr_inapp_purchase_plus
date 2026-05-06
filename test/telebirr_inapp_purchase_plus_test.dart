@@ -59,4 +59,47 @@ void main() {
       throwsA(isA<ArgumentError>()),
     );
   });
+
+  test('high-level Telebirr API requires initialize before pay', () async {
+    expect(
+      () => Telebirr.pay(
+        receiveCode: 'TELEBIRR\$BUYGOODS\$100100306\$12.00\$abc\$120m',
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
+
+  test('high-level Telebirr API initializes and pays with generated scheme',
+      () async {
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      if (call.method == 'getApplicationId') {
+        return 'com.example.shop';
+      }
+      if (call.method == 'startPay') {
+        return <String, Object?>{
+          'code': 0,
+          'message': 'ok',
+        };
+      }
+      return null;
+    });
+
+    await Telebirr.initialize(
+      appId: 'app123',
+      shortCode: '100100306',
+    );
+
+    final result = await Telebirr.pay(
+      receiveCode: 'TELEBIRR\$BUYGOODS\$100100306\$12.00\$abc\$120m',
+    );
+
+    expect(result.isSuccess, isTrue);
+    final startPayCall = calls.singleWhere((call) => call.method == 'startPay');
+    final args = Map<dynamic, dynamic>.from(startPayCall.arguments as Map);
+    expect(args['returnApp'], 'telebirr-com-example-shop');
+    expect(args['appId'], 'app123');
+  });
 }
