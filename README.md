@@ -102,7 +102,7 @@ if (result.isSuccess) {
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^0.0.1
+  telebirr_inapp_purchase_plus: ^0.0.3
 ```
 
 Then run:
@@ -111,12 +111,37 @@ Then run:
 flutter pub get
 ```
 
+## Fast Setup
+
+After `flutter pub get`, run the setup helper from your Flutter app root:
+
+```sh
+dart run telebirr_inapp_purchase_plus:telebirr_setup \
+  --sdk-dir /path/to/TelebirrSDKFolder \
+  --return-scheme yourappscheme
+```
+
+The setup helper:
+
+- copies Telebirr Android AAR files into the package cache
+- creates Android local Maven artifacts
+- copies `EthiopiaPaySDK.framework` into the package cache
+- changes Android `MainActivity` to `FlutterFragmentActivity`
+- adds iOS `telebirrcustomerApp` query scheme
+- adds your iOS return URL scheme
+
+Then run:
+
+```sh
+flutter clean
+flutter pub get
+cd ios && pod install
+```
+
 ## Native SDK Files
 
-Telebirr currently provides the native SDK as local files. Because those files
-may be proprietary, this public package does not publish merchant credentials or
-private keys, and you should only redistribute Telebirr SDK binaries if your
-Telebirr agreement allows it.
+Telebirr provides the native SDK as local files. Put all official Telebirr SDK
+files in one folder, then pass that folder to the setup helper.
 
 Place the official files here in this package or your local checkout:
 
@@ -130,6 +155,14 @@ For local development, you can copy files from a Telebirr SDK folder:
 
 ```sh
 ./scripts/install_telebirr_sdks.sh /path/to/TelebirrSDKFolder
+```
+
+For app developers using this package from pub.dev, prefer:
+
+```sh
+dart run telebirr_inapp_purchase_plus:telebirr_setup \
+  --sdk-dir /path/to/TelebirrSDKFolder \
+  --return-scheme yourappscheme
 ```
 
 ## Flutter Usage
@@ -180,14 +213,16 @@ See [doc/backend.md](doc/backend.md) for a small Laravel-style example.
 
 ## Developer Checklist
 
-1. Build backend create-order endpoint.
-2. Keep App Secret and private key only on backend.
-3. Add Telebirr AAR/framework files locally.
-4. Configure Android `FlutterFragmentActivity`.
-5. Configure iOS URL scheme and `telebirrcustomerApp`.
-6. Call backend from Flutter to get `receiveCode`.
-7. Call `startPay`.
-8. Confirm final payment on backend with `notify_url` or `queryOrder`.
+1. Create an account at [developer.ethiotelecom.et](https://developer.ethiotelecom.et/).
+2. Create or join your organization/team.
+3. Confirm your organization member status is approved at [developer.ethiotelecom.et/user/team](https://developer.ethiotelecom.et/user/team).
+4. Subscribe/contract the Telebirr InApp Purchase product for test or production.
+5. Build backend create-order endpoint.
+6. Keep App Secret and private key only on backend.
+7. Run `dart run telebirr_inapp_purchase_plus:telebirr_setup`.
+8. Call backend from Flutter to get `receiveCode`.
+9. Call `startPay`.
+10. Confirm final payment on backend with `notify_url` or `queryOrder`.
 
 ## What Is Automatic?
 
@@ -205,10 +240,10 @@ backend because it is app-specific or secret.
 | iOS native SDK call | Yes | The plugin calls `EthiopiaPayManager.shared().startPay(...)`. |
 | iOS SDK callback stream | Yes | The plugin sends callbacks to Flutter through `EventChannel`. |
 | iOS `openURL` forwarding | Mostly | The plugin registers an application delegate. Apps with custom URL routing must not swallow the Telebirr URL. |
-| Telebirr AAR files | No | Add official SDK files locally unless you have redistribution rights. |
-| iOS `EthiopiaPaySDK.framework` | No | Add the official framework locally. |
-| Android `FlutterFragmentActivity` | No | The host app owns `MainActivity`, so the developer must configure it. |
-| iOS URL scheme | No | The return scheme is app-specific, so the developer must add it. |
+| Telebirr AAR files | Setup helper | The helper copies official SDK files from your Telebirr SDK folder. |
+| iOS `EthiopiaPaySDK.framework` | Setup helper | The helper copies the official framework from your Telebirr SDK folder. |
+| Android `FlutterFragmentActivity` | Setup helper | The helper patches common Kotlin/Java `MainActivity` files. |
+| iOS URL scheme | Setup helper | Pass `--return-scheme yourappscheme`. |
 | Backend create-order endpoint | No | Must stay on your backend because it uses secrets and signing. |
 | App Secret/private key storage | No | Never put these in Flutter. |
 | `notify_url` and `queryOrder` | No | Must be handled by your backend. |
@@ -278,6 +313,26 @@ does not swallow the Telebirr return URL before plugins receive it.
 - Your backend base URL, Fabric App ID, App Secret, private key, short code,
   notify URL, and merchant app ID must all belong to the same environment.
 
+## Ethio Telecom Developer Account
+
+Before testing, create a developer account at
+[developer.ethiotelecom.et](https://developer.ethiotelecom.et/). Your merchant,
+team, and product contract must be active for the environment you are testing.
+
+Check your team status here:
+[developer.ethiotelecom.et/user/team](https://developer.ethiotelecom.et/user/team).
+
+Your organization member status must be approved. If the team member, merchant,
+contract, or product subscription is suspended or not approved, Telebirr can
+return:
+
+```text
+60200098: Product is not subscribed or the contract status is not allowed to do this operation.
+```
+
+When you see this error, fix the developer portal/team/product subscription
+status first, then create a new order.
+
 ## Error Codes
 
 | Code | Meaning |
@@ -313,6 +368,7 @@ Tap **Create Order From Backend**, then **Pay With Telebirr**.
 - `Telebirr app is not installed`: install the UAT or production Telebirr app.
 - `NO_ACTIVITY`: Android host app must use `FlutterFragmentActivity`.
 - `SDK_NOT_AVAILABLE` on iOS: copy `EthiopiaPaySDK.framework` and run `pod install`.
+- `60200098`: check Ethio Telecom developer portal team approval and product contract status.
 - Create order succeeds but payment fails: confirm app ID, short code, receive code, return scheme, and Telebirr app environment match.
 - Backend callback missing: make `notify_url` public and verify with `queryOrder`.
 
@@ -320,7 +376,6 @@ Tap **Create Order From Backend**, then **Pay With Telebirr**.
 
 - No merchant credentials in examples.
 - No private keys in the repo.
-- Confirm Telebirr SDK redistribution rights before committing binaries.
 - Run `flutter analyze`.
 - Run `flutter test`.
 - Run `dart pub publish --dry-run`.

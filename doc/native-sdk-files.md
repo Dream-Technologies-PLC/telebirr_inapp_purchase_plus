@@ -13,7 +13,15 @@ android/libs/EthiopiaPaySdkModule-prod-release.aar
 ```
 
 The package Gradle file expects local Maven entries created from those AARs.
-Run:
+App developers can run this from the Flutter app root:
+
+```sh
+dart run telebirr_inapp_purchase_plus:telebirr_setup \
+  --sdk-dir /path/to/TelebirrSDKFolder \
+  --return-scheme yourappscheme
+```
+
+Package maintainers can also run:
 
 ```sh
 ./scripts/install_telebirr_sdks.sh /path/to/TelebirrSDKFolder
@@ -43,6 +51,5 @@ pod install
 
 ## GitHub And pub.dev
 
-Do not commit the SDK binaries unless your Telebirr agreement explicitly allows
-redistribution. This repository ignores `android/libs/*.aar`,
-`android/libs-maven/`, and `ios/Frameworks/` by default.
+This repository ignores `android/libs/*.aar`, `android/libs-maven/`, and
+`ios/Frameworks/` by default. Use the setup helper after installing the package.

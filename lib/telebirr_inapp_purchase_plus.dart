@@ -1,19 +1,43 @@
+/// Flutter bridge for the official Telebirr InApp Purchase SDK.
+///
+/// The library starts native Telebirr payments with a backend-created
+/// `receiveCode` and returns SDK callbacks as typed Dart results.
+library;
+
 import 'dart:async';
 
 import 'package:flutter/services.dart';
 
+/// Telebirr InApp Purchase environment used by the native SDK.
 enum TelebirrEnvironment {
+  /// Telebirr UAT/testbed environment.
   test,
+
+  /// Telebirr production environment.
   production,
 }
 
+/// Payment data required to open the Telebirr native payment app.
+///
+/// The [receiveCode] must come from your backend create-order endpoint. Do not
+/// create or sign Telebirr orders in Flutter.
 class TelebirrPaymentRequest {
+  /// Merchant App ID from the Ethio Telecom developer portal.
   final String appId;
+
+  /// Merchant business short code.
   final String shortCode;
+
+  /// Telebirr receive code returned by your backend create-order endpoint.
   final String receiveCode;
+
+  /// URL scheme used by Telebirr to return to your app.
   final String returnApp;
+
+  /// Native SDK environment.
   final TelebirrEnvironment environment;
 
+  /// Creates an immutable Telebirr payment request.
   const TelebirrPaymentRequest({
     required this.appId,
     required this.shortCode,
@@ -22,6 +46,7 @@ class TelebirrPaymentRequest {
     this.environment = TelebirrEnvironment.test,
   });
 
+  /// Converts this request to the platform-channel payload.
   Map<String, Object?> toMap() {
     return <String, Object?>{
       'appId': appId,
@@ -33,16 +58,36 @@ class TelebirrPaymentRequest {
   }
 }
 
+/// Result returned by the Telebirr native SDK callback.
+///
+/// Use this for immediate UI feedback. Your backend `notify_url` or
+/// `queryOrder` response should remain the final source of payment truth.
 class TelebirrPaymentResult {
+  /// Raw Telebirr SDK result code.
   final int code;
+
+  /// Human-readable result message.
   final String message;
+
+  /// True when [code] is `0`.
   final bool isSuccess;
+
+  /// True when the customer cancelled payment.
   final bool isCancelled;
+
+  /// True when the Telebirr payment app is not installed.
   final bool isAppNotInstalled;
+
+  /// True when the installed Telebirr app does not support this function.
   final bool isUnsupportedVersion;
+
+  /// True when Telebirr reported invalid payment parameters.
   final bool isParameterError;
+
+  /// Original platform-channel payload, when available.
   final Map<String, dynamic>? raw;
 
+  /// Creates an immutable Telebirr payment result.
   const TelebirrPaymentResult({
     required this.code,
     required this.message,
@@ -54,6 +99,7 @@ class TelebirrPaymentResult {
     this.raw,
   });
 
+  /// Creates a result from a native SDK [code].
   factory TelebirrPaymentResult.fromCode({
     required int code,
     String? message,
@@ -71,6 +117,7 @@ class TelebirrPaymentResult {
     );
   }
 
+  /// Creates a result from a platform-channel map.
   factory TelebirrPaymentResult.fromMap(Map<dynamic, dynamic> map) {
     final code = _asInt(map['code']) ?? -1;
     return TelebirrPaymentResult.fromCode(
@@ -80,6 +127,7 @@ class TelebirrPaymentResult {
     );
   }
 
+  /// Converts this result to a JSON-friendly map.
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'code': code,
@@ -119,7 +167,10 @@ class TelebirrPaymentResult {
   }
 }
 
+/// Flutter entry point for Telebirr InApp Purchase SDK payments.
 class TelebirrInAppPurchasePlus {
+  TelebirrInAppPurchasePlus._();
+
   static const MethodChannel _methodChannel = MethodChannel(
     'telebirr_inapp_purchase_plus/methods',
   );
@@ -129,6 +180,11 @@ class TelebirrInAppPurchasePlus {
 
   static Stream<TelebirrPaymentResult>? _paymentResultStream;
 
+  /// Starts Telebirr payment using the native Android or iOS SDK.
+  ///
+  /// The [request.receiveCode] must be created by your backend before calling
+  /// this method. Throws [ArgumentError] before native code is called when
+  /// required fields are missing or invalid.
   static Future<TelebirrPaymentResult> startPay(
     TelebirrPaymentRequest request,
   ) async {
@@ -151,17 +207,20 @@ class TelebirrInAppPurchasePlus {
     }
   }
 
+  /// Broadcast stream of Telebirr native SDK callback results.
   static Stream<TelebirrPaymentResult> get paymentResultStream {
     return _paymentResultStream ??= _eventChannel
         .receiveBroadcastStream()
         .map((event) => TelebirrPaymentResult.fromMap(event as Map));
   }
 
+  /// Returns whether the Telebirr payment app can be opened on this device.
   static Future<bool> isTelebirrInstalled() async {
     return await _methodChannel.invokeMethod<bool>('isTelebirrInstalled') ??
         false;
   }
 
+  /// Returns the current Android or iOS platform version string.
   static Future<String?> getPlatformVersion() {
     return _methodChannel.invokeMethod<String>('getPlatformVersion');
   }

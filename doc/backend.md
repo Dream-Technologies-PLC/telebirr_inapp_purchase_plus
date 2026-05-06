@@ -28,6 +28,23 @@ The backend owns the sensitive Telebirr REST flow:
 
 The Flutter app should never receive the App Secret or private key.
 
+## Developer Portal Approval
+
+Create a developer account at
+[developer.ethiotelecom.et](https://developer.ethiotelecom.et/) and make sure
+your organization member status is approved at
+[developer.ethiotelecom.et/user/team](https://developer.ethiotelecom.et/user/team).
+
+If the organization member, merchant contract, or Telebirr InApp Purchase
+product subscription is suspended or not approved, create-order can fail with:
+
+```text
+60200098: Product is not subscribed or the contract status is not allowed to do this operation.
+```
+
+Fix the team/product approval first, then request a fresh Fabric Token and create
+a new order.
+
 ## Why receiveCode Matters
 
 `receiveCode` is the payment instruction created by Telebirr for one order. It
