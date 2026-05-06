@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
 Production-ready Flutter bridge for the Telebirr InApp Purchase SDK. Backend
 order creation and signing are intentionally excluded.
                        DESC
-  s.homepage         = 'https://github.com/ebakebede/telebirr_inapp_purchase_plus'
+  s.homepage         = 'https://github.com/Dream-Technologies-PLC/telebirr_inapp_purchase_plus'
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Telebirr InApp Purchase Plus Maintainers' => 'opensource@example.com' }
   s.source           = { :path => '.' }
