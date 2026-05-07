@@ -1,3 +1,8 @@
+## 1.0.3
+
+* Adds an integration-focused `skills.md` guide link for AI-assisted app setup.
+* Updates README setup instructions to reference the latest package version.
+
 ## 1.0.2
 
 * Adds Dream Technologies support contact details to the pub.dev README.

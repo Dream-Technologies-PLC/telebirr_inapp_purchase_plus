@@ -6,13 +6,18 @@ This package does one job: it starts the native Telebirr payment screen with the
 `receiveCode` your backend already created, then returns the SDK callback to
 Flutter.
 
+Using an AI coding assistant to integrate this package into your app? Add or
+reference [skills.md](skills.md) first so the assistant asks for the required
+backend URL, merchant values, return scheme, environment, and checkout flow
+before changing code.
+
 ## Plug-And-Play Setup
 
 1. Install:
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.0.1
+     telebirr_inapp_purchase_plus: ^1.0.3
    ```
 
 2. Initialize once before payment:
