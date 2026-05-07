@@ -1,37 +1,42 @@
 # skills.md
 
-Use this file as AI coding instructions when integrating or modifying
-`telebirr_inapp_purchase_plus`.
+Copy this file into an existing Flutter app to guide an AI coding assistant while
+adding Telebirr InApp payments with `telebirr_inapp_purchase_plus`.
 
-## Package Role
+This file is only for adding Telebirr payments to an existing Flutter app.
 
-This Flutter package starts Telebirr InApp Purchase payments from a Flutter app.
-It must only receive a `receiveCode` created by a secure backend.
+## Goal
 
-The Flutter package must not implement:
+Add Telebirr InApp payment to the current Flutter app with the smallest safe
+change set.
 
-- Fabric Token requests
-- Create Order requests
-- Query Order requests
-- RSA signing
-- App Secret storage
-- Private key storage
-- notify_url handling
+The app must:
 
-Those belong on the backend.
+1. Call its backend create-order endpoint.
+2. Receive `receiveCode`.
+3. Initialize Telebirr.
+4. Start payment with `Telebirr.pay(...)`.
+5. Show payment callback status to the user.
+6. Let the backend confirm final payment through `notify_url` or `queryOrder`.
 
-## Correct Flutter Flow
+## Install
 
-1. Flutter calls the backend create-order endpoint.
-2. Backend returns `receiveCode`.
-3. Flutter initializes Telebirr.
-4. Flutter calls `Telebirr.pay(receiveCode: ...)`.
-5. Flutter shows SDK callback result.
-6. Backend confirms final payment through `notify_url` or `queryOrder`.
+Add to `pubspec.yaml`:
 
-## Preferred API
+```yaml
+dependencies:
+  telebirr_inapp_purchase_plus: ^1.0.2
+```
 
-Use the high-level API:
+Then run:
+
+```bash
+flutter pub get
+```
+
+## Flutter Integration
+
+Use this API:
 
 ```dart
 await Telebirr.initialize(
@@ -44,58 +49,27 @@ await Telebirr.initialize(
 final result = await Telebirr.pay(receiveCode: receiveCodeFromBackend);
 ```
 
-Use `TelebirrInAppPurchasePlus.startPay(...)` only for legacy migration.
+Use `TelebirrEnvironment.production` only when the backend is also configured
+for production.
 
-## Security Rules
+## Backend Contract
 
-- Never hardcode real merchant credentials in examples or tests.
-- Never commit App Secret, private key, Fabric App ID, Merchant App ID, Short Code, or real receiveCode values.
-- Example values must use placeholders such as `YOUR_MERCHANT_APP_ID`.
-- Payment finality must come from backend confirmation, not only Flutter SDK callback.
-
-## Native Integration Rules
-
-Android:
-
-- Keep Kotlin plugin code on modern Flutter embedding.
-- Keep ActivityAware lifecycle handling safe.
-- Return readable errors when activity is unavailable.
-- Keep EventChannel callback streaming stable.
-- Preserve ProGuard rules for Telebirr SDK classes.
-
-iOS:
-
-- Keep Swift plugin code compatible with Flutter plugin registration.
-- Keep URL/deep-link return handling safe.
-- Return clear SDK-not-available errors if native SDK is missing or not linked.
-
-## Testing Checklist
-
-Before release:
-
-- Run `flutter analyze`.
-- Run `flutter test`.
-- Run `dart pub publish --dry-run`.
-- Check no real credentials are present:
-
-```bash
-rg "APP_SECRET|PRIVATE_KEY|MIIE|YOUR_REAL|receiveCode"
-```
-
-## Backend Pairing
-
-Recommended backend packages:
-
-- Laravel: `dream-technologies/telebirr-laravel-plus`
-- Node.js: `telebirr_plus`
-
-Flutter should call the backend endpoint:
+The Flutter app should call an existing backend endpoint such as:
 
 ```text
 POST /api/telebirr/create-order
 ```
 
-Expected backend response:
+Request body:
+
+```json
+{
+  "title": "Example order",
+  "amount": "12.00"
+}
+```
+
+Expected response:
 
 ```json
 {
@@ -105,3 +79,50 @@ Expected backend response:
 }
 ```
 
+## UI Behavior
+
+Add or update payment UI to include:
+
+- Loading state while creating order.
+- Loading state while starting payment.
+- Error message area.
+- Success message area.
+- Display of last SDK callback result.
+- Retry option for create-order failures.
+
+## Security Rules
+
+- Do not add App Secret, private key, Fabric Token, createOrder, queryOrder, or notify_url logic to Flutter.
+- Do not hardcode real merchant credentials in source code.
+- Do not commit real `receiveCode` values.
+- Flutter SDK callback is not final payment confirmation.
+- Final payment status must come from the backend.
+
+## Common Existing-App Wiring
+
+If the app already has an API client, add a method like:
+
+```dart
+Future<String> createTelebirrOrder({
+  required String title,
+  required String amount,
+});
+```
+
+That method should return only `receiveCode` or a typed object containing
+`merchantOrderId` and `receiveCode`.
+
+If the app already has state management, integrate payment state into the
+existing pattern instead of creating a new architecture.
+
+## Device Testing
+
+For a real phone, never use backend URL `localhost`.
+
+Use the computer LAN IP:
+
+```text
+http://192.168.x.x:8001/api/telebirr/create-order
+```
+
+For production, use HTTPS.
