@@ -1,9 +1,45 @@
 # skills.md
 
+## Best Package Description
+
+`telebirr_inapp_purchase_plus` is the Flutter client SDK for Telebirr InApp
+Purchase. Use it inside an existing Flutter app to open the native Telebirr
+payment experience after a secure backend has created an order and returned a
+`receiveCode`.
+
 Copy this file into an existing Flutter app to guide an AI coding assistant while
 adding Telebirr InApp payments with `telebirr_inapp_purchase_plus`.
 
 This file is only for adding Telebirr payments to an existing Flutter app.
+
+## AI Must Ask First
+
+Before changing code, ask the developer for these values:
+
+- Backend create-order URL.
+- Merchant App ID.
+- Business Short Code.
+- Return app scheme.
+- Target environment: `test` or `production`.
+- Existing app state management pattern.
+- Screen or checkout flow where payment should be added.
+
+Also confirm:
+
+- The backend already returns `receiveCode`.
+- The Telebirr customer app or testbed app is installed on the test device.
+- For a real phone, the backend URL is reachable from the phone.
+- Final payment confirmation will be handled by the backend.
+
+## Developer Actions Before AI Starts
+
+The developer must:
+
+- Provide the backend create-order endpoint.
+- Provide safe non-secret merchant values needed by Flutter.
+- Confirm whether the app is testing on simulator, emulator, or real device.
+- Confirm the return app scheme to use.
+- Confirm where payment success, cancellation, and failure should navigate.
 
 ## Goal
 
