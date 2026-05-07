@@ -36,7 +36,7 @@ class PaymentDemoPage extends StatefulWidget {
 
 class _PaymentDemoPageState extends State<PaymentDemoPage> {
   final _backendUrl = TextEditingController(
-    text: 'http://YOUR_LAN_IP:8000/api/telebirr/create-order',
+    text: 'http://YOUR_LAN_IP:8001/api/telebirr/create-order',
   );
   final _appId = TextEditingController(text: 'YOUR_MERCHANT_APP_ID');
   final _shortCode = TextEditingController(text: 'YOUR_SHORT_CODE');
@@ -133,14 +133,15 @@ class _PaymentDemoPageState extends State<PaymentDemoPage> {
     });
 
     try {
-      final result = await TelebirrInAppPurchasePlus.startPay(
-        TelebirrPaymentRequest(
-          appId: _appId.text.trim(),
-          shortCode: _shortCode.text.trim(),
-          receiveCode: _receiveCode.text.trim(),
-          returnApp: _returnApp.text.trim(),
-          environment: _environment,
-        ),
+      await Telebirr.initialize(
+        appId: _appId.text.trim(),
+        shortCode: _shortCode.text.trim(),
+        returnScheme: _returnApp.text.trim(),
+        environment: _environment,
+      );
+
+      final result = await Telebirr.pay(
+        receiveCode: _receiveCode.text.trim(),
       );
       setState(() => _lastResult = result);
     } catch (error) {
