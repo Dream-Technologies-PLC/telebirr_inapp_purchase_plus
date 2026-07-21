@@ -30,6 +30,7 @@ copy_if_found() {
 
 copy_if_found "EthiopiaPaySdkModule-uat-release.aar" "$ANDROID_LIBS/"
 copy_if_found "EthiopiaPaySdkModule-prod-release.aar" "$ANDROID_LIBS/"
+copy_if_found "EthiopiaPaySDK.xcframework" "$IOS_FRAMEWORKS/"
 copy_if_found "EthiopiaPaySDK.framework" "$IOS_FRAMEWORKS/"
 
 make_maven_artifact() {

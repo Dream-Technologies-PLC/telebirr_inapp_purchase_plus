@@ -24,4 +24,15 @@ internal class TelebirrInappPurchasePlusPluginTest {
 
         Mockito.verify(mockResult).success("Android " + android.os.Build.VERSION.RELEASE)
     }
+
+    @Test
+    fun onMethodCall_cancelWithoutPendingPayment_returnsFalse() {
+        val plugin = TelebirrInappPurchasePlusPlugin()
+
+        val call = MethodCall("cancelPendingPayment", null)
+        val mockResult: MethodChannel.Result = Mockito.mock(MethodChannel.Result::class.java)
+        plugin.onMethodCall(call, mockResult)
+
+        Mockito.verify(mockResult).success(false)
+    }
 }

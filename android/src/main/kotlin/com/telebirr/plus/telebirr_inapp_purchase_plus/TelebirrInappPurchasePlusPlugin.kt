@@ -1,8 +1,11 @@
 package com.telebirr.plus.telebirr_inapp_purchase_plus
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.NonNull
 import androidx.fragment.app.FragmentActivity
 import com.huawei.ethiopia.pay.sdk.api.core.data.PayInfo
@@ -27,6 +30,9 @@ class TelebirrInappPurchasePlusPlugin :
     private var activity: FragmentActivity? = null
     private var eventSink: EventChannel.EventSink? = null
     private var pendingResult: MethodChannel.Result? = null
+    private var pendingPaymentId: Long? = null
+    private var nextPaymentId = 0L
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
         applicationContext = binding.applicationContext
@@ -34,7 +40,6 @@ class TelebirrInappPurchasePlusPlugin :
         eventChannel = EventChannel(binding.binaryMessenger, EVENT_CHANNEL_NAME)
         methodChannel.setMethodCallHandler(this)
         eventChannel.setStreamHandler(this)
-        PaymentManager.getInstance().setPayCallback(createPayCallback())
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -42,6 +47,7 @@ class TelebirrInappPurchasePlusPlugin :
             "getPlatformVersion" -> result.success("Android ${Build.VERSION.RELEASE}")
             "getApplicationId" -> result.success(applicationContext.packageName)
             "isTelebirrInstalled" -> result.success(isPackageInstalled(TELEBIRR_PACKAGE_NAME))
+            "cancelPendingPayment" -> cancelPendingPayment(result)
             "startPay" -> startPay(call, result)
             else -> result.notImplemented()
         }
@@ -57,10 +63,23 @@ class TelebirrInappPurchasePlusPlugin :
         val shortCode = call.argument<String>("shortCode")?.trim().orEmpty()
         val receiveCode = call.argument<String>("receiveCode")?.trim().orEmpty()
         val returnApp = call.argument<String>("returnApp")?.trim().orEmpty()
+        val environment = call.argument<String>("environment")?.trim().orEmpty()
 
-        val validationError = validate(appId, shortCode, receiveCode, returnApp)
+        val validationError = validate(appId, shortCode, receiveCode, returnApp, environment)
         if (validationError != null) {
             result.error("PARAMETER_ERROR", validationError, -2)
+            return
+        }
+
+        val bundledEnvironment = if (isDebuggable()) "test" else "production"
+        if (environment != bundledEnvironment) {
+            result.error(
+                "ENVIRONMENT_MISMATCH",
+                "This Android build includes the $bundledEnvironment Telebirr SDK, " +
+                    "but the payment request selected $environment. " +
+                    "Use a debug build for test and a release build for production.",
+                -2
+            )
             return
         }
 
@@ -90,11 +109,14 @@ class TelebirrInappPurchasePlusPlugin :
             setReturnAppIfSupported(builder, returnApp)
             val payInfo = builder.build()
 
+            val paymentId = ++nextPaymentId
             pendingResult = result
-            PaymentManager.getInstance().setPayCallback(createPayCallback())
+            pendingPaymentId = paymentId
+            PaymentManager.getInstance().setPayCallback(createPayCallback(paymentId))
             PaymentManager.getInstance().pay(hostActivity, payInfo)
         } catch (exception: Throwable) {
             pendingResult = null
+            pendingPaymentId = null
             result.error(
                 "PAYMENT_ERROR",
                 exception.message ?: "Telebirr SDK failed to start payment.",
@@ -103,21 +125,38 @@ class TelebirrInappPurchasePlusPlugin :
         }
     }
 
-    private fun createPayCallback(): PayCallback {
+    private fun createPayCallback(paymentId: Long): PayCallback {
         return object : PayCallback {
             override fun onPayCallback(code: Int, errMsg: String?) {
-                val response = paymentResult(code, errMsg)
-                activity?.runOnUiThread {
-                    emit(response)
-                    pendingResult?.success(response)
-                    pendingResult = null
-                } ?: run {
-                    emit(response)
-                    pendingResult?.success(response)
-                    pendingResult = null
+                runOnMainThread {
+                    finishPayment(paymentId, code, errMsg)
                 }
             }
         }
+    }
+
+    private fun cancelPendingPayment(result: MethodChannel.Result) {
+        val paymentId = pendingPaymentId
+        if (paymentId == null || pendingResult == null) {
+            result.success(false)
+            return
+        }
+
+        finishPayment(paymentId, -3, "Payment was cancelled.")
+        result.success(true)
+    }
+
+    private fun finishPayment(paymentId: Long, code: Int, message: String?) {
+        if (pendingPaymentId != paymentId) {
+            return
+        }
+
+        val response = paymentResult(code, message)
+        val result = pendingResult
+        pendingResult = null
+        pendingPaymentId = null
+        emit(response)
+        result?.success(response)
     }
 
     private fun setReturnAppIfSupported(builder: PayInfo.Builder, returnApp: String) {
@@ -133,14 +172,22 @@ class TelebirrInappPurchasePlusPlugin :
         appId: String,
         shortCode: String,
         receiveCode: String,
-        returnApp: String
+        returnApp: String,
+        environment: String
     ): String? {
         if (appId.isBlank()) return "appId is required."
         if (shortCode.isBlank()) return "shortCode is required."
         if (receiveCode.isBlank()) return "receiveCode is required."
         if (!receiveCode.startsWith("TELEBIRR\$")) return "receiveCode must start with TELEBIRR\$."
         if (returnApp.isBlank()) return "returnApp is required."
+        if (environment != "test" && environment != "production") {
+            return "environment must be test or production."
+        }
         return null
+    }
+
+    private fun isDebuggable(): Boolean {
+        return applicationContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
     }
 
     private fun paymentResult(code: Int, message: String?): Map<String, Any> {
@@ -163,7 +210,17 @@ class TelebirrInappPurchasePlusPlugin :
     }
 
     private fun emit(response: Map<String, Any>) {
-        eventSink?.success(response)
+        runOnMainThread {
+            eventSink?.success(response)
+        }
+    }
+
+    private fun runOnMainThread(action: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action()
+        } else {
+            mainHandler.post(action)
+        }
     }
 
     private fun isPackageInstalled(packageName: String): Boolean {
@@ -208,7 +265,11 @@ class TelebirrInappPurchasePlusPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        pendingPaymentId?.let { paymentId ->
+            finishPayment(paymentId, -3, "Payment was cancelled because the Flutter engine detached.")
+        }
         pendingResult = null
+        pendingPaymentId = null
         eventSink = null
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
