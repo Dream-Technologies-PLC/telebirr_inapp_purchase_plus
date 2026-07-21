@@ -5,6 +5,13 @@ import UIKit
 public class TelebirrInappPurchasePlusPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, EthiopiaPayManagerDelegate {
   private var eventSink: FlutterEventSink?
   private var pendingResult: FlutterResult?
+  private var activePaymentId = 0
+  private var pendingPaymentId: Int?
+  private var handledReturnUrlPaymentId = -1
+  private var leftAppPaymentId = -1
+  private var currentReturnScheme: String?
+  private var willResignObserver: NSObjectProtocol?
+  private var didBecomeActiveObserver: NSObjectProtocol?
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let instance = TelebirrInappPurchasePlusPlugin()
@@ -18,6 +25,7 @@ public class TelebirrInappPurchasePlusPlugin: NSObject, FlutterPlugin, FlutterSt
     registrar.addMethodCallDelegate(instance, channel: methodChannel)
     registrar.addApplicationDelegate(instance)
     eventChannel.setStreamHandler(instance)
+    instance.observeApplicationLifecycle()
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -28,6 +36,8 @@ public class TelebirrInappPurchasePlusPlugin: NSObject, FlutterPlugin, FlutterSt
       result(Bundle.main.bundleIdentifier)
     case "isTelebirrInstalled":
       result(isTelebirrInstalled())
+    case "cancelPendingPayment":
+      cancelPendingPayment(result: result)
     case "startPay":
       startPay(call, result: result)
     default:
@@ -68,7 +78,13 @@ public class TelebirrInappPurchasePlusPlugin: NSObject, FlutterPlugin, FlutterSt
       return
     }
 
+    activePaymentId += 1
+    let paymentId = activePaymentId
     pendingResult = result
+    pendingPaymentId = paymentId
+    handledReturnUrlPaymentId = -1
+    leftAppPaymentId = -1
+    currentReturnScheme = normalizeScheme(returnApp)
     let manager = EthiopiaPayManager.shared()
     manager.delegate = self
     manager.startPay(
@@ -114,19 +130,132 @@ public class TelebirrInappPurchasePlusPlugin: NSObject, FlutterPlugin, FlutterSt
     open url: URL,
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
+    guard
+      let paymentId = pendingPaymentId,
+      let expectedScheme = currentReturnScheme,
+      normalizeScheme(url.scheme ?? "") == expectedScheme
+    else {
+      return false
+    }
+
+    handledReturnUrlPaymentId = paymentId
     EthiopiaPayManager.shared().handleOpen(url)
-    return false
+    scheduleMissingCallbackFallback(for: paymentId)
+    return true
+  }
+
+  public func applicationDidBecomeActive(_ application: UIApplication) {
+    handleApplicationDidBecomeActive()
   }
 
   public func payResultCallback(withCode code: Int, msg: String) {
-    finish(code: code, message: msg)
+    if Thread.isMainThread {
+      finish(code: code, message: msg)
+      return
+    }
+
+    DispatchQueue.main.async { [weak self] in
+      self?.finish(code: code, message: msg)
+    }
+  }
+
+  private func cancelPendingPayment(result: FlutterResult) {
+    guard pendingResult != nil else {
+      result(false)
+      return
+    }
+
+    finish(code: -3, message: "Payment was cancelled.")
+    result(true)
   }
 
   private func finish(code: Int, message: String?) {
+    guard pendingResult != nil else {
+      return
+    }
+
     let response = paymentResult(code: code, message: message)
     eventSink?(response)
     pendingResult?(response)
     pendingResult = nil
+    pendingPaymentId = nil
+    handledReturnUrlPaymentId = -1
+    leftAppPaymentId = -1
+    currentReturnScheme = nil
+  }
+
+  private func observeApplicationLifecycle() {
+    willResignObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.willResignActiveNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      guard let self = self, let paymentId = self.pendingPaymentId else {
+        return
+      }
+      self.leftAppPaymentId = paymentId
+    }
+
+    didBecomeActiveObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.didBecomeActiveNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.handleApplicationDidBecomeActive()
+    }
+  }
+
+  private func handleApplicationDidBecomeActive() {
+    guard
+      let paymentId = pendingPaymentId,
+      leftAppPaymentId == paymentId
+    else {
+      return
+    }
+
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+      guard
+        let self = self,
+        self.pendingPaymentId == paymentId,
+        self.handledReturnUrlPaymentId != paymentId
+      else {
+        return
+      }
+
+      self.finish(code: -3, message: "Payment was cancelled.")
+    }
+  }
+
+  private func scheduleMissingCallbackFallback(for paymentId: Int) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+      guard
+        let self = self,
+        self.pendingPaymentId == paymentId,
+        self.handledReturnUrlPaymentId == paymentId
+      else {
+        return
+      }
+
+      self.finish(
+        code: -1,
+        message: "Telebirr returned without an SDK callback. Verify the order on your backend.")
+    }
+  }
+
+  private func normalizeScheme(_ value: String) -> String {
+    return value
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+      .replacingOccurrences(of: "://", with: "")
+      .lowercased()
+  }
+
+  deinit {
+    if let observer = willResignObserver {
+      NotificationCenter.default.removeObserver(observer)
+    }
+    if let observer = didBecomeActiveObserver {
+      NotificationCenter.default.removeObserver(observer)
+    }
   }
 
   private func paymentResult(code: Int, message: String?) -> [String: Any] {

@@ -1,3 +1,28 @@
+## 1.1.0
+
+* Adds `Telebirr.cancelPendingPayment()` for safely clearing a native call that
+  is still waiting for an SDK callback.
+* Distinguishes a payment already in progress from a customer cancellation.
+* Serializes Android callbacks on the main thread and ignores callbacks from a
+  cleared native session.
+* Handles iOS app-return cancellation even when the host app overrides lifecycle
+  callbacks, and forwards only the configured Telebirr return URL scheme.
+* Dispatches iOS SDK callbacks on the main thread.
+* Adds an iOS fallback result when the app returns but the native SDK never
+  invokes its delegate.
+* Repackages the supplied legacy iOS fat framework as an XCFramework so its
+  device and simulator slices are selected correctly by modern Xcode, including
+  automatic x86_64 simulator selection on Apple Silicon hosts.
+* Rejects Android test/production environment mismatches before opening the
+  Telebirr app and compiles UAT and production SDK variants independently.
+
+## 1.0.4
+
+* Improves `dart run telebirr_inapp_purchase_plus:doctor --fix` so it safely
+  merges iOS `telebirrcustomerApp` and return URL scheme entries into existing
+  `Info.plist` arrays instead of creating duplicate plist keys.
+* Documents the auto-fix command in the plug-and-play setup flow.
+
 ## 1.0.3
 
 * Adds an integration-focused `skills.md` guide link for AI-assisted app setup.

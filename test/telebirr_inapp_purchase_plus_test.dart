@@ -16,10 +16,7 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       expect(call.method, 'startPay');
-      return <String, Object?>{
-        'code': -3,
-        'message': 'cancelled by user',
-      };
+      return <String, Object?>{'code': -3, 'message': 'cancelled by user'};
     });
 
     final result = await TelebirrInAppPurchasePlus.startPay(
@@ -46,6 +43,62 @@ void main() {
     expect(await TelebirrInAppPurchasePlus.isTelebirrInstalled(), isTrue);
   });
 
+  test('clears a native payment waiting for a callback', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'cancelPendingPayment');
+      return true;
+    });
+
+    expect(await Telebirr.cancelPendingPayment(), isTrue);
+  });
+
+  test('distinguishes an in-progress call from user cancellation', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(
+        code: 'PAYMENT_IN_PROGRESS',
+        message: 'A Telebirr payment is already in progress.',
+      );
+    });
+
+    final result = await TelebirrInAppPurchasePlus.startPay(
+      const TelebirrPaymentRequest(
+        appId: 'app123',
+        shortCode: '100100306',
+        receiveCode: 'TELEBIRR\$BUYGOODS\$100100306\$12.00\$abc\$120m',
+        returnApp: 'example',
+      ),
+    );
+
+    expect(result.isPaymentInProgress, isTrue);
+    expect(result.isCancelled, isFalse);
+    expect(result.raw?['platformCode'], 'PAYMENT_IN_PROGRESS');
+  });
+
+  test('maps a native environment mismatch to a parameter error', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(
+        code: 'ENVIRONMENT_MISMATCH',
+        message: 'Use a debug build for test payments.',
+      );
+    });
+
+    final result = await TelebirrInAppPurchasePlus.startPay(
+      const TelebirrPaymentRequest(
+        appId: 'app123',
+        shortCode: '100100306',
+        receiveCode: 'TELEBIRR\$BUYGOODS\$100100306\$12.00\$abc\$120m',
+        returnApp: 'example',
+      ),
+    );
+
+    expect(result.code, -2);
+    expect(result.isParameterError, isTrue);
+    expect(result.raw?['platformCode'], 'ENVIRONMENT_MISMATCH');
+  });
+
   test('rejects invalid receiveCode before native call', () async {
     expect(
       () => TelebirrInAppPurchasePlus.startPay(
@@ -69,37 +122,35 @@ void main() {
     );
   });
 
-  test('high-level Telebirr API initializes and pays with generated scheme',
-      () async {
-    final calls = <MethodCall>[];
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-      calls.add(call);
-      if (call.method == 'getApplicationId') {
-        return 'com.example.shop';
-      }
-      if (call.method == 'startPay') {
-        return <String, Object?>{
-          'code': 0,
-          'message': 'ok',
-        };
-      }
-      return null;
-    });
+  test(
+    'high-level Telebirr API initializes and pays with generated scheme',
+    () async {
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        if (call.method == 'getApplicationId') {
+          return 'com.example.shop';
+        }
+        if (call.method == 'startPay') {
+          return <String, Object?>{'code': 0, 'message': 'ok'};
+        }
+        return null;
+      });
 
-    await Telebirr.initialize(
-      appId: 'app123',
-      shortCode: '100100306',
-    );
+      await Telebirr.initialize(appId: 'app123', shortCode: '100100306');
 
-    final result = await Telebirr.pay(
-      receiveCode: 'TELEBIRR\$BUYGOODS\$100100306\$12.00\$abc\$120m',
-    );
+      final result = await Telebirr.pay(
+        receiveCode: 'TELEBIRR\$BUYGOODS\$100100306\$12.00\$abc\$120m',
+      );
 
-    expect(result.isSuccess, isTrue);
-    final startPayCall = calls.singleWhere((call) => call.method == 'startPay');
-    final args = Map<dynamic, dynamic>.from(startPayCall.arguments as Map);
-    expect(args['returnApp'], 'telebirr-com-example-shop');
-    expect(args['appId'], 'app123');
-  });
+      expect(result.isSuccess, isTrue);
+      final startPayCall = calls.singleWhere(
+        (call) => call.method == 'startPay',
+      );
+      final args = Map<dynamic, dynamic>.from(startPayCall.arguments as Map);
+      expect(args['returnApp'], 'telebirr-com-example-shop');
+      expect(args['appId'], 'app123');
+    },
+  );
 }
