@@ -17,8 +17,18 @@ before changing code.
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.0.3
+     telebirr_inapp_purchase_plus: ^1.1.0
    ```
+
+   Then run the package auto-fixer once from your Flutter app root:
+
+   ```sh
+   flutter pub get
+   dart run telebirr_inapp_purchase_plus:doctor --fix
+   ```
+
+   This validates the app and automatically adds the required Android activity
+   base class plus the iOS Telebirr query scheme and return URL scheme.
 
 2. Initialize once before payment:
 
@@ -94,8 +104,8 @@ What you do on iOS:
   `returnScheme`.
 - If your app has a custom `AppDelegate` or `SceneDelegate`, do not block the
   Telebirr return URL before Flutter plugins receive it.
-- Run `dart run telebirr_inapp_purchase_plus:doctor` if payment does not return
-  to the app.
+- Run `dart run telebirr_inapp_purchase_plus:doctor --fix` to automatically add
+  the iOS `telebirrcustomerApp` query scheme and generated return URL scheme.
 
 ## Successful Setup Steps
 
@@ -113,7 +123,7 @@ Follow these steps in order:
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.0.1
+     telebirr_inapp_purchase_plus: ^1.1.0
    ```
 
 8. Run:
@@ -258,7 +268,7 @@ if (result.isSuccess) {
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^1.0.1
+  telebirr_inapp_purchase_plus: ^1.1.0
 ```
 
 Then run:
@@ -314,6 +324,16 @@ if (result.isSuccess) {
   print('Payment failed: ${result.message}');
 }
 ```
+
+If your screen is closed while the native SDK is still waiting for a callback,
+clear only the local pending call before starting another payment:
+
+```dart
+await Telebirr.cancelPendingPayment();
+```
+
+This does not cancel the backend order. Query that order on your backend before
+creating or paying a replacement order.
 
 Stream callback:
 
@@ -450,8 +470,14 @@ More detail: [doc/what-package-does.md](doc/what-package-does.md).
 
 ## Test And Production
 
-- Test uses the UAT/testbed Telebirr app and UAT AAR/framework.
-- Production uses the production Telebirr app and production SDK.
+- Android debug builds automatically include the UAT SDK. Android release
+  builds automatically include the production SDK. A mismatched
+  `TelebirrEnvironment` returns a readable parameter error before opening the
+  Telebirr app.
+- The official iOS framework supports test and production; the backend
+  credentials and `receiveCode` select the environment.
+- The supplied iOS SDK contains arm64 device and x86_64 simulator code. The
+  podspec selects the correct architecture automatically for both targets.
 - Do not mix test `receiveCode` values with production credentials.
 - Your backend base URL, Fabric App ID, App Secret, private key, short code,
   notify URL, and merchant app ID must all belong to the same environment.
@@ -510,7 +536,7 @@ Tap **Create Order From Backend**, then **Pay With Telebirr**.
 - `receiveCode must start with TELEBIRR$`: return the exact `receiveCode` from your backend.
 - `Telebirr app is not installed`: install the UAT or production Telebirr app.
 - `NO_ACTIVITY`: Android host app must use `FlutterFragmentActivity`.
-- `SDK_NOT_AVAILABLE` on iOS: copy `EthiopiaPaySDK.framework` and run `pod install`.
+- `SDK_NOT_AVAILABLE` on iOS: confirm `EthiopiaPaySDK.xcframework` is present and run `pod install`.
 - `60200098`: check Ethio Telecom developer portal team approval and product contract status.
 - Create order succeeds but payment fails: confirm app ID, short code, receive code, return scheme, and Telebirr app environment match.
 - Backend callback missing: make `notify_url` public and verify with `queryOrder`.

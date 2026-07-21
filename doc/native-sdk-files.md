@@ -35,7 +35,7 @@ The plugin owns:
 
 The plugin owns:
 
-- `EthiopiaPaySDK.framework` linking.
+- `EthiopiaPaySDK.xcframework` linking for physical devices and simulators.
 - MethodChannel and EventChannel.
 - `EthiopiaPayManager` bridge.
 - SDK callback mapping.

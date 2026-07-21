@@ -21,9 +21,6 @@ allprojects {
         maven {
             url = uri("$projectDir/libs-maven")
         }
-        flatDir {
-            dirs "$projectDir/libs"
-        }
     }
 }
 

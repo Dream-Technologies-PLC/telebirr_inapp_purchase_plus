@@ -20,29 +20,20 @@ Future<void> main(List<String> args) async {
       : _defaultReturnScheme(projectRoot);
 
   if (options.doctor && !options.fix) {
-    _runDiagnostics(
-      projectRoot: projectRoot,
-      returnScheme: returnScheme,
-    );
+    _runDiagnostics(projectRoot: projectRoot, returnScheme: returnScheme);
     return;
   }
 
   if (options.fix) {
     _patchAndroidMainActivity(projectRoot);
     _patchIosInfoPlist(projectRoot, returnScheme);
-    _runDiagnostics(
-      projectRoot: projectRoot,
-      returnScheme: returnScheme,
-    );
+    _runDiagnostics(projectRoot: projectRoot, returnScheme: returnScheme);
     stdout.writeln('');
     stdout.writeln('Telebirr doctor auto-fix complete.');
     return;
   }
 
-  _runDiagnostics(
-    projectRoot: projectRoot,
-    returnScheme: returnScheme,
-  );
+  _runDiagnostics(projectRoot: projectRoot, returnScheme: returnScheme);
 }
 
 void _patchAndroidMainActivity(Directory projectRoot) {
@@ -55,9 +46,11 @@ void _patchAndroidMainActivity(Directory projectRoot) {
   final files = androidSrc
       .listSync(recursive: true)
       .whereType<File>()
-      .where((file) =>
-          file.path.endsWith('MainActivity.kt') ||
-          file.path.endsWith('MainActivity.java'))
+      .where(
+        (file) =>
+            file.path.endsWith('MainActivity.kt') ||
+            file.path.endsWith('MainActivity.java'),
+      )
       .toList();
 
   if (files.isEmpty) {
@@ -69,21 +62,28 @@ void _patchAndroidMainActivity(Directory projectRoot) {
     var content = file.readAsStringSync();
     if (content.contains('FlutterFragmentActivity')) {
       stdout.writeln(
-          'Android MainActivity already uses FlutterFragmentActivity.');
+        'Android MainActivity already uses FlutterFragmentActivity.',
+      );
       return;
     }
 
     if (file.path.endsWith('.kt')) {
       content = content
-          .replaceAll('import io.flutter.embedding.android.FlutterActivity',
-              'import io.flutter.embedding.android.FlutterFragmentActivity')
+          .replaceAll(
+            'import io.flutter.embedding.android.FlutterActivity',
+            'import io.flutter.embedding.android.FlutterFragmentActivity',
+          )
           .replaceAll(': FlutterActivity()', ': FlutterFragmentActivity()');
     } else {
       content = content
-          .replaceAll('import io.flutter.embedding.android.FlutterActivity;',
-              'import io.flutter.embedding.android.FlutterFragmentActivity;')
           .replaceAll(
-              'extends FlutterActivity', 'extends FlutterFragmentActivity');
+            'import io.flutter.embedding.android.FlutterActivity;',
+            'import io.flutter.embedding.android.FlutterFragmentActivity;',
+          )
+          .replaceAll(
+            'extends FlutterActivity',
+            'extends FlutterFragmentActivity',
+          );
     }
 
     file.writeAsStringSync(content);
@@ -100,39 +100,116 @@ void _patchIosInfoPlist(Directory projectRoot, String scheme) {
   }
 
   var content = plist.readAsStringSync();
-  if (!content.contains('telebirrcustomerApp')) {
-    content = content.replaceFirst(
-      '</dict>',
-      '''
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>telebirrcustomerApp</string>
-	</array>
-</dict>''',
-    );
-  }
-
-  if (!content.contains('<string>$scheme</string>')) {
-    content = content.replaceFirst(
-      '</dict>',
-      '''
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLName</key>
-			<string>$scheme</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>$scheme</string>
-			</array>
-		</dict>
-	</array>
-</dict>''',
-    );
-  }
+  content = _ensurePlistStringArrayValue(
+    content: content,
+    key: 'LSApplicationQueriesSchemes',
+    value: 'telebirrcustomerApp',
+  );
+  content = _ensurePlistUrlScheme(content, scheme);
 
   plist.writeAsStringSync(content);
   stdout.writeln('Patched iOS Info.plist for return scheme: $scheme.');
+}
+
+String _ensurePlistStringArrayValue({
+  required String content,
+  required String key,
+  required String value,
+}) {
+  final stringEntry = '\t\t<string>$value</string>';
+  if (_plistArrayForKeyContains(content, key, '<string>$value</string>')) {
+    return content;
+  }
+
+  final keyToken = '<key>$key</key>';
+  final keyIndex = content.indexOf(keyToken);
+  if (keyIndex == -1) {
+    return content.replaceFirst('</dict>', '''
+\t<key>$key</key>
+\t<array>
+$stringEntry
+\t</array>
+</dict>''');
+  }
+
+  final arrayEnd = _arrayEndForKey(content, keyIndex);
+  if (arrayEnd == -1) {
+    return content;
+  }
+
+  return content.replaceRange(arrayEnd, arrayEnd, '$stringEntry\n');
+}
+
+String _ensurePlistUrlScheme(String content, String scheme) {
+  final schemeEntry =
+      '''
+\t\t<dict>
+\t\t\t<key>CFBundleTypeRole</key>
+\t\t\t<string>Editor</string>
+\t\t\t<key>CFBundleURLName</key>
+\t\t\t<string>Telebirr Return Scheme</string>
+\t\t\t<key>CFBundleURLSchemes</key>
+\t\t\t<array>
+\t\t\t\t<string>$scheme</string>
+\t\t\t</array>
+\t\t</dict>
+''';
+
+  if (_plistArrayForKeyContains(
+    content,
+    'CFBundleURLTypes',
+    '<string>$scheme</string>',
+  )) {
+    return content;
+  }
+
+  const keyToken = '<key>CFBundleURLTypes</key>';
+  final keyIndex = content.indexOf(keyToken);
+  if (keyIndex == -1) {
+    return content.replaceFirst('</dict>', '''
+\t<key>CFBundleURLTypes</key>
+\t<array>
+$schemeEntry\t</array>
+</dict>''');
+  }
+
+  final arrayEnd = _arrayEndForKey(content, keyIndex);
+  if (arrayEnd == -1) {
+    return content;
+  }
+
+  return content.replaceRange(arrayEnd, arrayEnd, schemeEntry);
+}
+
+bool _plistArrayForKeyContains(String content, String key, String needle) {
+  final keyIndex = content.indexOf('<key>$key</key>');
+  if (keyIndex == -1) return false;
+
+  final arrayStart = content.indexOf('<array>', keyIndex);
+  final arrayEnd = _arrayEndForKey(content, keyIndex);
+  if (arrayStart == -1 || arrayEnd == -1) return false;
+
+  return content.substring(arrayStart, arrayEnd).contains(needle);
+}
+
+int _arrayEndForKey(String content, int keyIndex) {
+  final arrayStart = content.indexOf('<array>', keyIndex);
+  if (arrayStart == -1) return -1;
+
+  var depth = 0;
+  final tagPattern = RegExp(r'</?array>');
+  for (final match in tagPattern.allMatches(content, arrayStart)) {
+    if (match.group(0) == '<array>') {
+      depth++;
+    } else {
+      depth--;
+      if (depth == 0) {
+        return match.start;
+      }
+    }
+  }
+
+  return -1;
 }
 
 void _runDiagnostics({
@@ -143,16 +220,26 @@ void _runDiagnostics({
   stdout.writeln('Telebirr Doctor');
   stdout.writeln('');
   _check(
-      'Flutter project', File('${projectRoot.path}/pubspec.yaml').existsSync());
+    'Flutter project',
+    File('${projectRoot.path}/pubspec.yaml').existsSync(),
+  );
   _check(
-      'Android project', Directory('${projectRoot.path}/android').existsSync());
+    'Android project',
+    Directory('${projectRoot.path}/android').existsSync(),
+  );
   _check('iOS project', Directory('${projectRoot.path}/ios').existsSync());
   _check(
-      'Android MainActivity', _mainActivityUsesFragmentActivity(projectRoot));
-  _check('iOS telebirrcustomerApp',
-      _iosPlistContains(projectRoot, 'telebirrcustomerApp'));
-  _check('iOS return scheme $returnScheme',
-      _iosPlistContains(projectRoot, returnScheme));
+    'Android MainActivity',
+    _mainActivityUsesFragmentActivity(projectRoot),
+  );
+  _check(
+    'iOS telebirrcustomerApp',
+    _iosPlistContains(projectRoot, 'telebirrcustomerApp'),
+  );
+  _check(
+    'iOS return scheme $returnScheme',
+    _iosPlistContains(projectRoot, returnScheme),
+  );
 
   stdout.writeln('');
   stdout.writeln('Generated return scheme: $returnScheme');
@@ -168,11 +255,14 @@ bool _mainActivityUsesFragmentActivity(Directory projectRoot) {
   return androidSrc
       .listSync(recursive: true)
       .whereType<File>()
-      .where((file) =>
-          file.path.endsWith('MainActivity.kt') ||
-          file.path.endsWith('MainActivity.java'))
-      .any((file) =>
-          file.readAsStringSync().contains('FlutterFragmentActivity'));
+      .where(
+        (file) =>
+            file.path.endsWith('MainActivity.kt') ||
+            file.path.endsWith('MainActivity.java'),
+      )
+      .any(
+        (file) => file.readAsStringSync().contains('FlutterFragmentActivity'),
+      );
 }
 
 bool _iosPlistContains(Directory projectRoot, String value) {
@@ -181,7 +271,8 @@ bool _iosPlistContains(Directory projectRoot, String value) {
 }
 
 String _defaultReturnScheme(Directory projectRoot) {
-  final appId = _detectAndroidApplicationId(projectRoot) ??
+  final appId =
+      _detectAndroidApplicationId(projectRoot) ??
       _detectIosBundleId(projectRoot) ??
       'flutter-app';
   return 'telebirr-${appId.replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')}'
@@ -196,20 +287,28 @@ String? _detectAndroidApplicationId(Directory projectRoot) {
   for (final file in candidates) {
     if (!file.existsSync()) continue;
     final content = file.readAsStringSync();
-    final match =
-        RegExp(r'applicationId\s*[= ]\s*["' "'" r']([^"' "'" r']+)["' "'" r']')
-            .firstMatch(content);
+    final match = RegExp(
+      r'applicationId\s*[= ]\s*["'
+      "'"
+      r']([^"'
+      "'"
+      r']+)["'
+      "'"
+      r']',
+    ).firstMatch(content);
     if (match != null) return match.group(1);
   }
   return null;
 }
 
 String? _detectIosBundleId(Directory projectRoot) {
-  final project =
-      File('${projectRoot.path}/ios/Runner.xcodeproj/project.pbxproj');
+  final project = File(
+    '${projectRoot.path}/ios/Runner.xcodeproj/project.pbxproj',
+  );
   if (!project.existsSync()) return null;
-  final match = RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);')
-      .firstMatch(project.readAsStringSync());
+  final match = RegExp(
+    r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);',
+  ).firstMatch(project.readAsStringSync());
   return match?.group(1)?.replaceAll(r'$(PRODUCT_NAME)', 'app').trim();
 }
 

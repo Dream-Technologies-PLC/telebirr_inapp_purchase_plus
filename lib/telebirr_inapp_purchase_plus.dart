@@ -131,7 +131,8 @@ class Telebirr {
     final returnScheme = _returnScheme;
     if (config == null || returnScheme == null) {
       throw StateError(
-          'Call Telebirr.initialize(...) before Telebirr.pay(...).');
+        'Call Telebirr.initialize(...) before Telebirr.pay(...).',
+      );
     }
 
     return TelebirrInAppPurchasePlus.startPay(
@@ -143,6 +144,15 @@ class Telebirr {
         environment: config.environment,
       ),
     );
+  }
+
+  /// Cancels a native payment call that is still waiting for an SDK callback.
+  ///
+  /// This only clears the local SDK session. It does not cancel or refund a
+  /// Telebirr order on the backend. Query the order on your backend before
+  /// starting a replacement payment for the same purchase.
+  static Future<bool> cancelPendingPayment() {
+    return TelebirrInAppPurchasePlus.cancelPendingPayment();
   }
 
   /// Broadcast stream of Telebirr payment results.
@@ -281,6 +291,9 @@ class TelebirrPaymentResult {
   /// True when the customer cancelled payment.
   final bool isCancelled;
 
+  /// True when a second payment was rejected because another call is pending.
+  final bool isPaymentInProgress;
+
   /// True when the Telebirr payment app is not installed.
   final bool isAppNotInstalled;
 
@@ -299,6 +312,7 @@ class TelebirrPaymentResult {
     required this.message,
     required this.isSuccess,
     required this.isCancelled,
+    this.isPaymentInProgress = false,
     required this.isAppNotInstalled,
     required this.isUnsupportedVersion,
     required this.isParameterError,
@@ -310,12 +324,14 @@ class TelebirrPaymentResult {
     required int code,
     String? message,
     Map<String, dynamic>? raw,
+    bool isPaymentInProgress = false,
   }) {
     return TelebirrPaymentResult(
       code: code,
       message: _messageFor(code, message),
       isSuccess: code == 0,
-      isCancelled: code == -3,
+      isCancelled: code == -3 && !isPaymentInProgress,
+      isPaymentInProgress: isPaymentInProgress,
       isAppNotInstalled: code == -10,
       isUnsupportedVersion: code == -11,
       isParameterError: code == -2,
@@ -326,10 +342,13 @@ class TelebirrPaymentResult {
   /// Creates a result from a platform-channel map.
   factory TelebirrPaymentResult.fromMap(Map<dynamic, dynamic> map) {
     final code = _asInt(map['code']) ?? -1;
+    final paymentInProgress =
+        map['isPaymentInProgress'] == true || map['paymentInProgress'] == true;
     return TelebirrPaymentResult.fromCode(
       code: code,
       message: map['message']?.toString() ?? map['errMsg']?.toString(),
       raw: Map<String, dynamic>.from(map),
+      isPaymentInProgress: paymentInProgress,
     );
   }
 
@@ -340,6 +359,7 @@ class TelebirrPaymentResult {
       'message': message,
       'isSuccess': isSuccess,
       'isCancelled': isCancelled,
+      'isPaymentInProgress': isPaymentInProgress,
       'isAppNotInstalled': isAppNotInstalled,
       'isUnsupportedVersion': isUnsupportedVersion,
       'isParameterError': isParameterError,
@@ -405,6 +425,7 @@ class TelebirrInAppPurchasePlus {
       return TelebirrPaymentResult.fromCode(
         code: _codeForPlatformError(error),
         message: error.message ?? error.details?.toString(),
+        isPaymentInProgress: error.code == 'PAYMENT_IN_PROGRESS',
         raw: <String, dynamic>{
           'platformCode': error.code,
           if (error.details != null) 'details': error.details,
@@ -415,14 +436,20 @@ class TelebirrInAppPurchasePlus {
 
   /// Broadcast stream of Telebirr native SDK callback results.
   static Stream<TelebirrPaymentResult> get paymentResultStream {
-    return _paymentResultStream ??= _eventChannel
-        .receiveBroadcastStream()
-        .map((event) => TelebirrPaymentResult.fromMap(event as Map));
+    return _paymentResultStream ??= _eventChannel.receiveBroadcastStream().map(
+      (event) => TelebirrPaymentResult.fromMap(event as Map),
+    );
   }
 
   /// Returns whether the Telebirr payment app can be opened on this device.
   static Future<bool> isTelebirrInstalled() async {
     return await _methodChannel.invokeMethod<bool>('isTelebirrInstalled') ??
+        false;
+  }
+
+  /// Clears a native payment call that is still waiting for an SDK callback.
+  static Future<bool> cancelPendingPayment() async {
+    return await _methodChannel.invokeMethod<bool>('cancelPendingPayment') ??
         false;
   }
 
@@ -460,7 +487,8 @@ class TelebirrInAppPurchasePlus {
 
   static int _codeForPlatformError(PlatformException error) {
     return switch (error.code) {
-      'PARAMETER_ERROR' || 'INVALID_ARGUMENTS' => -2,
+      'PARAMETER_ERROR' || 'INVALID_ARGUMENTS' || 'ENVIRONMENT_MISMATCH' => -2,
+      'PAYMENT_IN_PROGRESS' => -3,
       'TELEBIRR_NOT_INSTALLED' => -10,
       'UNSUPPORTED_VERSION' => -11,
       _ => -1,
