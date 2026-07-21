@@ -1,4 +1,4 @@
-## 1.1.0
+## 1.0.5
 
 * Adds `Telebirr.cancelPendingPayment()` for safely clearing a native call that
   is still waiting for an SDK callback.
