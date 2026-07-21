@@ -44,7 +44,7 @@ before changing code.
      //
      // If omitted, the package generates one from your Android package name
      // or iOS bundle ID. Pass this only when your app/Telebirr contract uses
-     // a known scheme, for example 'peaceride'.
+     // a known scheme, for example 'yourappscheme'.
      returnScheme: 'yourappscheme',
 
      // Use test for testbed and production for live payments.
