@@ -17,7 +17,7 @@ before changing code.
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.1.0
+     telebirr_inapp_purchase_plus: ^1.0.5
    ```
 
    Then run the package auto-fixer once from your Flutter app root:
@@ -44,7 +44,7 @@ before changing code.
      //
      // If omitted, the package generates one from your Android package name
      // or iOS bundle ID. Pass this only when your app/Telebirr contract uses
-     // a known scheme, for example 'peaceride'.
+     // a known scheme, for example 'yourappscheme'.
      returnScheme: 'yourappscheme',
 
      // Use test for testbed and production for live payments.
@@ -123,7 +123,7 @@ Follow these steps in order:
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.1.0
+     telebirr_inapp_purchase_plus: ^1.0.5
    ```
 
 8. Run:
@@ -268,7 +268,7 @@ if (result.isSuccess) {
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^1.1.0
+  telebirr_inapp_purchase_plus: ^1.0.5
 ```
 
 Then run:
