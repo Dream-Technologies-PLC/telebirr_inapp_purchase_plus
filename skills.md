@@ -64,7 +64,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^1.0.6
+  telebirr_inapp_purchase_plus: ^1.0.7
 ```
 
 Then run:

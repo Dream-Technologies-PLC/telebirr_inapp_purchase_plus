@@ -1,3 +1,9 @@
+## 1.0.7
+
+- Fixed Android bundled AAR resolution for hosted pub.dev installations.
+- Removed the need for an app-level Gradle repository path to the plugin.
+- Verified the published plugin architecture with Android and iOS simulator builds.
+
 ## 1.0.6
 
 * Adds Dream Technologies' Flutter integration and Telebirr API technical

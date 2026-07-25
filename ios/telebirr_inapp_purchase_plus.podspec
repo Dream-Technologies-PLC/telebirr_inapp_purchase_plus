@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'telebirr_inapp_purchase_plus'
-  s.version          = '1.0.6'
+  s.version          = '1.0.7'
   s.summary          = 'Flutter bridge for the Telebirr InApp Purchase SDK.'
   s.description      = <<-DESC
 Production-ready Flutter bridge for the Telebirr InApp Purchase SDK. Backend

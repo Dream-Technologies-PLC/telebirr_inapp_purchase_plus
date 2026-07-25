@@ -20,7 +20,7 @@ before changing code.
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.0.6
+     telebirr_inapp_purchase_plus: ^1.0.7
    ```
 
    Then run the package auto-fixer once from your Flutter app root:
@@ -126,7 +126,7 @@ Follow these steps in order:
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.0.6
+     telebirr_inapp_purchase_plus: ^1.0.7
    ```
 
 8. Run:
@@ -271,7 +271,7 @@ if (result.isSuccess) {
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^1.0.6
+  telebirr_inapp_purchase_plus: ^1.0.7
 ```
 
 Then run:
