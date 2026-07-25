@@ -2,7 +2,7 @@ PODS:
   - Flutter (1.0.0)
   - integration_test (0.0.1):
     - Flutter
-  - telebirr_inapp_purchase_plus (1.0.5):
+  - telebirr_inapp_purchase_plus (1.0.6):
     - Flutter
 
 DEPENDENCIES:
@@ -21,7 +21,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
-  telebirr_inapp_purchase_plus: 12ef649d74b44c0c5174b87d8ee8b3e77189a80b
+  telebirr_inapp_purchase_plus: df24d58927d435072a40cf5023156e8304877ac0
 
 PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
 
