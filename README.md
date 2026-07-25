@@ -1,5 +1,8 @@
 # telebirr_inapp_purchase_plus
 
+[Flutter integration guide](https://dreamtech.et/blog/how-to-integrate-telebirr-payment-packages) |
+[Telebirr API technical guide](https://dreamtech.et/blog/telebirr-api-integration-technical-guide)
+
 Clean Flutter payments for the official Telebirr InApp Purchase SDK.
 
 This package does one job: it starts the native Telebirr payment screen with the
@@ -17,7 +20,7 @@ before changing code.
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.0.5
+     telebirr_inapp_purchase_plus: ^1.0.6
    ```
 
    Then run the package auto-fixer once from your Flutter app root:
@@ -123,7 +126,7 @@ Follow these steps in order:
 
    ```yaml
    dependencies:
-     telebirr_inapp_purchase_plus: ^1.0.5
+     telebirr_inapp_purchase_plus: ^1.0.6
    ```
 
 8. Run:
@@ -268,7 +271,7 @@ if (result.isSuccess) {
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^1.0.5
+  telebirr_inapp_purchase_plus: ^1.0.6
 ```
 
 Then run:

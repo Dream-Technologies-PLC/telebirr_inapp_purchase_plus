@@ -1,5 +1,8 @@
 # skills.md
 
+[Flutter integration guide](https://dreamtech.et/blog/how-to-integrate-telebirr-payment-packages) |
+[Telebirr API technical guide](https://dreamtech.et/blog/telebirr-api-integration-technical-guide)
+
 ## Best Package Description
 
 `telebirr_inapp_purchase_plus` is the Flutter client SDK for Telebirr InApp
@@ -61,7 +64,7 @@ Add to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  telebirr_inapp_purchase_plus: ^1.0.5
+  telebirr_inapp_purchase_plus: ^1.0.6
 ```
 
 Then run:

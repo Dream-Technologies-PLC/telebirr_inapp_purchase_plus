@@ -1,3 +1,10 @@
+## 1.0.6
+
+* Adds Dream Technologies' Flutter integration and Telebirr API technical
+  guides to the top of `README.md` and `skills.md`.
+* Confirms compatibility with an existing production driver-app payment
+  lifecycle while retaining the package's newer native safeguards.
+
 ## 1.0.5
 
 * Adds `Telebirr.cancelPendingPayment()` for safely clearing a native call that
