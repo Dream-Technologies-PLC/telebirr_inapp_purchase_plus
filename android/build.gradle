@@ -14,12 +14,14 @@ buildscript {
     }
 }
 
-allprojects {
+def telebirrSdkRepository = new File(project.projectDir, "libs-maven")
+
+rootProject.allprojects {
     repositories {
         google()
         mavenCentral()
         maven {
-            url = uri("$projectDir/libs-maven")
+            url = telebirrSdkRepository.toURI()
         }
     }
 }

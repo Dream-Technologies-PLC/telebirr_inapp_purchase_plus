@@ -27,9 +27,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url = uri("../../android/libs-maven")
-        }
     }
 }
 

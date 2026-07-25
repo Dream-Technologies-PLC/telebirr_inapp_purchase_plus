@@ -2,9 +2,6 @@ allprojects {
     repositories {
         google()
         mavenCentral()
-        maven {
-            url = rootProject.file("../../android/libs-maven").toURI()
-        }
     }
 }
 
